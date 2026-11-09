@@ -11,7 +11,20 @@ import {
   Box, RotateCw, Maximize2, Minimize2, Sun, Moon, Grid, Layers, Sparkles, ChevronLeft, ZoomIn, ZoomOut
 } from "lucide-react";
 import Room3DExperience, { SingleRoom3DCanvas } from "./Room3DExperience.jsx";
-import { ROOM_3D_METADATA, buildRoom1Capsule, buildRoom2Bunk, buildRoom3Twin } from "./rooms3d.js";
+import {
+  ROOM_3D_METADATA,
+  ALL_3D_ENVIRONMENTS_METADATA,
+  buildBuildingExterior,
+  buildMainEntranceReception,
+  buildMainHall,
+  buildSharedKitchen,
+  buildLibraryStudy,
+  buildSportsBasketball,
+  buildRoom1Capsule,
+  buildRoom2Bunk,
+  buildRoom3Twin,
+  buildRoom4Studio
+} from "./environments3d.js";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -77,25 +90,32 @@ const allProjectAssets = [
 
 const rooms = [
   {
-    id: 1, title: "2 kishilik xona", people: "2 o‘rin", price: "$120", tag: "Mavjud",
+    id: 1, title: "01 / Kapsula Pod Yotoqxona", people: "4-8 o‘rin", price: "$120", tag: "Eng ommabop",
     image: "/images/room1.jpeg",
-    description: "Ikki talaba uchun qulay va yorug‘ xona.",
-    gallery: ["/images/room1.jpeg", "https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?auto=format&fit=crop&w=1200&q=90", "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=1200&q=90", "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1200&q=90"],
-    amenities: ["2 ta qulay yotoq", "O‘qish stoli", "Shaxsiy shkaf", "Tezkor Wi-Fi"]
+    description: "Yapon uslubidagi zamonaviy yog‘och kapsula podlar. Shaxsiy LED yorug‘lik, qizil choyshab, oq sochiq to‘plami va pastki saqlash tortmalari.",
+    gallery: ["/images/room1.jpeg"],
+    amenities: ["Shaxsiy kapsula pod", "Ichki LED yorug‘lik", "Qizil choyshab & sochiq", "Yog‘och saqlash tortmalari", "24/7 sokinlik"]
   },
   {
-    id: 2, title: "1 kishilik xona", people: "1 o‘rin", price: "$180", tag: "Mavjud",
+    id: 2, title: "02 / Minimalist Oq Bunk Xona", people: "4-6 o‘rin", price: "$100", tag: "Mavjud",
     image: "/images/room2.jpeg",
-    description: "Shaxsiy hudud va tinch o‘qish muhiti.",
-    gallery: ["/images/room2.jpeg", "https://images.unsplash.com/photo-1616594039964-ae9021a400a0?auto=format&fit=crop&w=1200&q=90", "https://images.unsplash.com/photo-1617104678098-de229db51175?auto=format&fit=crop&w=1200&q=90", "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1200&q=90"],
-    amenities: ["1 ta keng yotoq", "Shaxsiy o‘qish joyi", "Katta shkaf", "24/7 xavfsizlik"]
+    description: "Yorug‘ oq metall karkasli ikki qavatli karavotlar, issiq terracotta to‘shaklari, ocher adyollar va oyna kabi yaltiroq chinni kafel pol.",
+    gallery: ["/images/room2.jpeg"],
+    amenities: ["Oq po‘lat karkas", "Terracotta choyshablar", "Ocher issiq adyol", "Yaltiroq chinni kafel", "Ventilyatsiya tizimi"]
   },
   {
-    id: 3, title: "4 kishilik xona", people: "4 o‘rin", price: "$100", tag: "Mavjud",
+    id: 3, title: "03 / Standart 2 Kishilik Xona", people: "2 o‘rin", price: "$180", tag: "Premium",
     image: "/images/room3.jpeg",
-    description: "Do‘stlar bilan yashash uchun keng xona.",
-    gallery: ["/images/room3.jpeg", "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&w=1200&q=90", "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=1200&q=90", "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1200&q=90"],
-    amenities: ["4 ta yotoq", "Umumiy o‘qish stoli", "Kiyim shkafi", "Oshxonaga yaqin"]
+    description: "Ikkita alohida bir kishilik yotoq, kulrang boshkoralar, tabiiy yog‘och tortmalar, zebra rolikli parda, markaziy isitish va o‘rtadagi gilam.",
+    gallery: ["/images/room3.jpeg"],
+    amenities: ["2 ta alohida to‘shak", "Zebra rolikli parda", "Taglik tortmalari", "Markaziy isitish", "Yumshoq gilam"]
+  },
+  {
+    id: 4, title: "04 / Deluxe Studio Xona", people: "1 o‘rin", price: "$240", tag: "Eksklyuziv",
+    image: "/images/hero-dorm-room.jpeg",
+    description: "Mustaqil va sokin yashashni xohlovchilar uchun shaxsiy xona: keng yog‘och yotoq, moviy adyol, o‘qish stoli, ergonomik kreslo va katta kiyim shkafi.",
+    gallery: ["/images/hero-dorm-room.jpeg"],
+    amenities: ["Shaxsiy xona", "Keng o‘qish stoli", "Ergonomik kreslo", "Katta kiyim shkafi", "Shaxsiy shinamlik"]
   }
 ];
 
@@ -472,16 +492,311 @@ function RoomsOnly({ openBooking }) {
   );
 }
 
+function Facility3DViewer() {
+  const mountRef = useRef(null);
+  const [activeTab, setActiveTab] = useState("kitchen");
+  const [isNight, setIsNight] = useState(false);
+  const [showRefCompare, setShowRefCompare] = useState(false);
+
+  const metaMap = {
+    kitchen: {
+      name: "Umumiy Oshxona & Ovqatlanish Maydoni",
+      tag: "Oshxona (k1, k2, k3)",
+      refImages: ["/images/k1.jpeg", "/images/k2.jpeg", "/images/k3.jpeg"],
+      refImage: "/images/k1.jpeg",
+      desc: "4 ta induksion plita, dudburonlar, 2 ta zanglamas po‘lat muzlatgich, mikroto‘lqinli pechlar va 8 kishilik ovqatlanish stoli.",
+      builder: buildSharedKitchen
+    },
+    library: {
+      name: "Talabalar Kutubxonasi & Kovorking Zali",
+      tag: "Kutubxona (l1, l2, l3)",
+      refImages: ["/images/l1.jpeg", "/images/l2.jpeg", "/images/l3.jpeg"],
+      refImage: "/images/l1.jpeg",
+      desc: "Shiftgacha kitob javonlari, 4 ta shaxsiy o‘qish kabinalari (carrels), noutbuk va LED chiroqlar, guruh ishi uchun taqdimot ekrani.",
+      builder: buildLibraryStudy
+    },
+    sports: {
+      name: "Basketbol Maydoni & Fitnes Zali",
+      tag: "Sport (b1, b2, b3)",
+      refImages: ["/images/b1.jpeg", "/images/b2.webp", "/images/b3.jpeg"],
+      refImage: "/images/b1.jpeg",
+      desc: "Standart shaffof shisha basketbol shiti, akril qoplamali maydon, gantellar va fitnes skameykasi.",
+      builder: buildSportsBasketball
+    },
+    hall: {
+      name: "Asosiy Katta Xoll & Atrium",
+      tag: "Markaziy Xoll (d2)",
+      refImages: ["/images/d2.jpeg"],
+      refImage: "/images/d2.jpeg",
+      desc: "2 qavatli baland shift, marmar pol, aylanma dam olish oroli va zamonaviy kutish maydoni.",
+      builder: buildMainHall
+    }
+  };
+
+  const cur = metaMap[activeTab];
+
+  useEffect(() => {
+    const mount = mountRef.current;
+    if (!mount) return;
+
+    const scene = new THREE.Scene();
+    const bg = isNight ? "#060f1c" : "#eef2f6";
+    scene.background = new THREE.Color(bg);
+
+    const camera = new THREE.PerspectiveCamera(50, mount.clientWidth / mount.clientHeight, 0.1, 100);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.8));
+    renderer.setSize(mount.clientWidth, mount.clientHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    mount.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.055;
+    controls.maxPolarAngle = Math.PI / 2 + 0.04;
+
+    const hemi = new THREE.HemisphereLight(
+      isNight ? "#1e293b" : "#ffffff",
+      isNight ? "#090d16" : "#cbd5e1",
+      isNight ? 0.6 : 1.4
+    );
+    scene.add(hemi);
+    const sun = new THREE.DirectionalLight(isNight ? "#38bdf8" : "#fffbeb", isNight ? 0.8 : 2.2);
+    sun.position.set(12, 20, 14);
+    sun.castShadow = true;
+    scene.add(sun);
+
+    const group = new THREE.Group();
+    scene.add(group);
+    const cfg = cur.builder(group);
+
+    if (cfg?.defaultCameraPos) camera.position.copy(cfg.defaultCameraPos);
+    else camera.position.set(0, 2.0, 6.0);
+    if (cfg?.cameraTarget) controls.target.copy(cfg.cameraTarget);
+    else controls.target.set(0, 1.5, 0);
+    controls.update();
+
+    const resize = () => {
+      if (!mount) return;
+      camera.aspect = mount.clientWidth / mount.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(mount.clientWidth, mount.clientHeight);
+    };
+    const ro = new ResizeObserver(resize);
+    ro.observe(mount);
+
+    let frame;
+    const animate = () => {
+      controls.update();
+      renderer.render(scene, camera);
+      frame = requestAnimationFrame(animate);
+    };
+    animate();
+
+    return () => {
+      cancelAnimationFrame(frame);
+      ro.disconnect();
+      controls.dispose();
+      renderer.dispose();
+      if (mount.contains(renderer.domElement)) mount.removeChild(renderer.domElement);
+    };
+  }, [activeTab, isNight]);
+
+  return (
+    <div
+      style={{
+        position: "relative",
+        width: "100%",
+        height: 600,
+        borderRadius: 24,
+        overflow: "hidden",
+        background: "#091422",
+        boxShadow: "0 20px 50px rgba(0,0,0,0.5)",
+        border: "1px solid rgba(255,255,255,0.12)",
+        marginBottom: 30
+      }}
+    >
+      <div ref={mountRef} style={{ width: "100%", height: "100%" }} />
+
+      {/* TOP TABS */}
+      <div
+        style={{
+          position: "absolute",
+          top: 16,
+          left: 16,
+          right: 16,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 10,
+          flexWrap: "wrap",
+          zIndex: 10
+        }}
+      >
+        <div style={{ display: "inline-flex", gap: 6, background: "rgba(6,21,34,0.85)", padding: 4, borderRadius: 30, backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.15)" }}>
+          {[
+            ["kitchen", "🍳 Oshxona"],
+            ["library", "📚 Kutubxona"],
+            ["sports", "🏀 Sport"],
+            ["hall", "🏛️ Katta Xoll"]
+          ].map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setActiveTab(key)}
+              style={{
+                border: 0,
+                background: activeTab === key ? "#10b981" : "transparent",
+                color: activeTab === key ? "#fff" : "#94a3b8",
+                padding: "6px 14px",
+                borderRadius: 20,
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: "pointer",
+                transition: "all 0.2s"
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ display: "inline-flex", gap: 8 }}>
+          <button
+            type="button"
+            className="tool-pill"
+            style={{
+              background: "rgba(6, 21, 34, 0.85)",
+              backdropFilter: "blur(8px)",
+              border: "1px solid rgba(255,255,255,0.2)",
+              color: "#e2e8f0",
+              padding: "6px 14px",
+              borderRadius: 20,
+              fontSize: 11,
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6
+            }}
+            onClick={() => setShowRefCompare((c) => !c)}
+          >
+            <Eye size={13} color="#38bdf8" /> Solishtirish
+          </button>
+          <button
+            type="button"
+            className="tool-pill"
+            style={{
+              background: "rgba(6, 21, 34, 0.85)",
+              backdropFilter: "blur(8px)",
+              border: "1px solid rgba(255,255,255,0.2)",
+              color: "#e2e8f0",
+              padding: "6px 14px",
+              borderRadius: 20,
+              fontSize: 11,
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6
+            }}
+            onClick={() => setIsNight((n) => !n)}
+          >
+            {isNight ? <Moon size={13} color="#38bdf8" /> : <Sun size={13} color="#f59e0b" />}
+            {isNight ? "Tun" : "Kun"}
+          </button>
+        </div>
+      </div>
+
+      {/* SOLISHTIRISH PIP */}
+      {showRefCompare && (
+        <div
+          style={{
+            position: "absolute",
+            top: 68,
+            right: 16,
+            width: 320,
+            background: "rgba(6,21,34,0.95)",
+            backdropFilter: "blur(14px)",
+            borderRadius: 14,
+            padding: 14,
+            zIndex: 20,
+            border: "1px solid rgba(56,189,248,0.4)",
+            boxShadow: "0 16px 36px rgba(0,0,0,0.6)"
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <b style={{ color: "#38bdf8", fontSize: 11 }}>Haqiqiy Fotosuratlar</b>
+            <button
+              type="button"
+              onClick={() => setShowRefCompare(false)}
+              style={{ border: 0, background: "transparent", color: "#94a3b8", fontSize: 16, cursor: "pointer" }}
+            >
+              ×
+            </button>
+          </div>
+          <div style={{ display: "flex", gap: 6, overflowX: "auto" }}>
+            {cur.refImages.map((src, i) => (
+              <img
+                key={src}
+                src={src}
+                alt={`${cur.name} ${i + 1}`}
+                style={{ width: 140, height: 95, objectFit: "cover", borderRadius: 8 }}
+              />
+            ))}
+          </div>
+          <small style={{ display: "block", marginTop: 8, color: "#cbd5e1", fontSize: 10 }}>
+            3D model aynan ushbu fotosuratlardagi mebel va jihozlar asosida yaratilgan.
+          </small>
+        </div>
+      )}
+
+      {/* BOTTOM INFO BANNER */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: 16,
+          left: 16,
+          right: 16,
+          background: "rgba(6,21,34,0.88)",
+          backdropFilter: "blur(12px)",
+          border: "1px solid rgba(255,255,255,0.15)",
+          borderRadius: 16,
+          padding: "12px 18px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 12,
+          flexWrap: "wrap",
+          zIndex: 10
+        }}
+      >
+        <div>
+          <span style={{ fontSize: 10, color: "#d8b27b", textTransform: "uppercase", fontWeight: 700 }}>{cur.tag}</span>
+          <h4 style={{ margin: "2px 0 0", color: "#fff", fontSize: 15 }}>{cur.name}</h4>
+          <p style={{ margin: 0, color: "#94a3b8", fontSize: 11, maxWidth: 540 }}>{cur.desc}</p>
+        </div>
+        <span style={{ fontSize: 11, color: "#38bdf8", display: "inline-flex", alignItems: "center", gap: 4 }}>
+          <RotateCw size={13} /> 360° erkin aylantiring
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function FacilitiesOnly({ facilities }) {
   return (
-    <section className="facilities-page">
+    <section className="facilities-page" style={{ paddingTop: 20 }}>
       <div className="facilities-section section-wrap facilities-visible">
         <div className="facility-heading">
-          <span className="section-kicker"><i /> Qulayliklar</span>
-          <h1>Qulay talabalar hayoti uchun barcha imkoniyatlar</h1>
-          <p>Universitet hayotingizni oson, xavfsiz va qulay qilish uchun zamonaviy imkoniyatlardan foydalaning.</p>
+          <span className="section-kicker"><i /> 100% Interaktiv 3D</span>
+          <h1>Umumiy Maydonlar & Qulayliklar</h1>
+          <p>Oshxona, kutubxona, sport maydoni va xollni to‘liq interaktiv 3D fazoda kashf qiling.</p>
         </div>
-        <FacilityCards facilities={facilities} />
+        <Facility3DViewer />
+        <div style={{ marginTop: 40 }}>
+          <FacilityCards facilities={facilities} />
+        </div>
       </div>
     </section>
   );
@@ -538,65 +853,25 @@ function CampusTour({ onOpen3D, openBooking }) {
   const tourState = useRef({ progress: 0, controls: null, camera: null });
   const [scene, setScene] = useState(0);
   const [isAutoTour, setIsAutoTour] = useState(false);
+  const [isNight, setIsNight] = useState(false);
+  const [showRefCompare, setShowRefCompare] = useState(false);
 
-  const scenesInfo = [
-    {
-      kicker: "01 / Bino Fasadi",
-      title: "Tashkent Perfect University",
-      subtitle: "Talabalar Turar Joyi Asosiy Binosi",
-      desc: "Universitetimizning zamonaviy yotoqxona binosi. Pastga skrol qiling — bino eshigi ochilib, xonalar namoyon bo‘ladi!",
-      tag: "Tashqi ko‘rinish"
-    },
-    {
-      kicker: "02 / Bino Eshigi Ochilishi",
-      title: "Bino Eshiklari Ochilmoqda",
-      subtitle: "Xush kelibsiz!",
-      desc: "Bino eshiklari siz uchun ochilmoqda. Marhamat, ichkariga kiring!",
-      tag: "Bino kirishi"
-    },
-    {
-      kicker: "03 / Lobbi & Qabulxona",
-      title: "Kutib Olish Qismi va Yo‘lak",
-      subtitle: "Xavfsiz va shinam muhit",
-      desc: "24/7 xavfsizlik, qabulxona va sokin yo‘lak orqali xonalar tomon qadam qo‘yamiz.",
-      tag: "1-qavat Lobbi"
-    },
-    {
-      kicker: "04 / Xona 01 — 3D Model",
-      title: "Kapsula Pod Yotoqxona",
-      subtitle: "4-8 o‘rinli zamonaviy kapsula",
-      desc: "Yapon uslubidagi yog‘och kapsulalar, shaxsiy LED yorug‘lik, qizil choyshab va keng tortmalar.",
-      tag: "Xona 01 · $120/oy",
-      roomIndex: 0
-    },
-    {
-      kicker: "05 / Xona 02 — 3D Model",
-      title: "Minimalist Oq Bunk Yotoqxona",
-      subtitle: "4-6 o‘rinli yorug‘ xona",
-      desc: "Oq po‘lat ikki qavatli karavotlar, terracotta to‘shaklar va yaltiroq chinni kafel pol.",
-      tag: "Xona 02 · $100/oy",
-      roomIndex: 1
-    },
-    {
-      kicker: "06 / Xona 03 — 3D Model",
-      title: "Standart 2 Kishilik Xona",
-      subtitle: "2 kishilik shinam talabalar xonasi",
-      desc: "Ikkita alohida to‘shak, zebra rolikli parda, tabiiy qayin tortmalari va markaziy isitish.",
-      tag: "Xona 03 · $180/oy",
-      roomIndex: 2
-    }
-  ];
+  const scenesInfo = ALL_3D_ENVIRONMENTS_METADATA;
 
   const locations = [
     "🏛️ Bino Fasadi",
-    "🚪 Eshik Ochilishi",
-    "🏢 Lobbi & Yo‘lak",
+    "🚪 Kirish Eshigi",
+    "🏢 Katta Xoll",
+    "🍳 Oshxona",
+    "📚 Kutubxona",
+    "🏀 Sport Maydoni",
     "🛏️ 01 Kapsula",
     "🛏️ 02 Bunk Bed",
-    "🛏️ 03 Twin Xona"
+    "🛏️ 03 Twin Xona",
+    "🛏️ 04 Studio"
   ];
 
-  const sceneProgressTargets = [0.03, 0.22, 0.36, 0.52, 0.72, 0.90];
+  const sceneProgressTargets = [0.03, 0.14, 0.24, 0.36, 0.48, 0.60, 0.70, 0.80, 0.88, 0.96];
 
   const jumpToScene = (index) => {
     const trigger = scrollTimelineRef.current?.scrollTrigger;
@@ -639,10 +914,11 @@ function CampusTour({ onOpen3D, openBooking }) {
 
     // --- 1. Scene, Camera, Renderer ---
     const world = new THREE.Scene();
-    world.background = new THREE.Color("#071524");
-    world.fog = new THREE.Fog("#071524", 20, 110);
+    const bgColor = isNight ? "#050d18" : "#091728";
+    world.background = new THREE.Color(bgColor);
+    world.fog = new THREE.Fog(bgColor, 30, 140);
 
-    const camera = new THREE.PerspectiveCamera(46, mount.clientWidth / mount.clientHeight, 0.1, 140);
+    const camera = new THREE.PerspectiveCamera(46, mount.clientWidth / mount.clientHeight, 0.1, 200);
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.8));
     renderer.setSize(mount.clientWidth, mount.clientHeight);
@@ -652,34 +928,22 @@ function CampusTour({ onOpen3D, openBooking }) {
     mount.appendChild(renderer.domElement);
     tourState.current.camera = camera;
 
-    // --- 2. Lighting ---
-    const hemiLight = new THREE.HemisphereLight("#e2f0fb", "#112235", 1.8);
+    // --- 2. Dynamic Lighting (Day / Night) ---
+    const hemiLight = new THREE.HemisphereLight(
+      isNight ? "#1e293b" : "#e0f2fe",
+      isNight ? "#090d16" : "#0f172a",
+      isNight ? 0.7 : 1.9
+    );
     world.add(hemiLight);
 
-    const sun = new THREE.DirectionalLight("#fff4e0", 2.6);
-    sun.position.set(16, 24, 18);
+    const sun = new THREE.DirectionalLight(
+      isNight ? "#38bdf8" : "#fffbeb",
+      isNight ? 0.9 : 2.7
+    );
+    sun.position.set(20, 32, 24);
     sun.castShadow = true;
     sun.shadow.mapSize.set(1024, 1024);
     world.add(sun);
-
-    // --- 3. Materials ---
-    const materials = {
-      ground: new THREE.MeshStandardMaterial({ color: "#2d4438", roughness: 0.95 }),
-      concrete: new THREE.MeshStandardMaterial({ color: "#e2e8f0", roughness: 0.7 }),
-      glass: new THREE.MeshPhysicalMaterial({
-        color: "#93c5fd",
-        metalness: 0.15,
-        roughness: 0.1,
-        transmission: 0.6,
-        transparent: true,
-        opacity: 0.75
-      }),
-      dark: new THREE.MeshStandardMaterial({ color: "#0f1f30", roughness: 0.45 }),
-      wood: new THREE.MeshStandardMaterial({ color: "#964e22", roughness: 0.65 }),
-      warm: new THREE.MeshStandardMaterial({ color: "#f59e0b", emissive: "#d97706", emissiveIntensity: 0.55 }),
-      white: new THREE.MeshStandardMaterial({ color: "#f8fafc", roughness: 0.8 }),
-      gold: new THREE.MeshStandardMaterial({ color: "#fbbf24", metalness: 0.8, roughness: 0.25 })
-    };
 
     const box = (size, pos, mat, parent = world) => {
       const mesh = new THREE.Mesh(new THREE.BoxGeometry(...size), mat);
@@ -690,219 +954,158 @@ function CampusTour({ onOpen3D, openBooking }) {
       return mesh;
     };
 
-    const cylinder = (r, h, pos, mat, parent = world) => {
-      const mesh = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 16), mat);
-      mesh.position.set(...pos);
-      mesh.castShadow = true;
-      parent.add(mesh);
-      return mesh;
-    };
+    // Shared Materials
+    const darkMat = new THREE.MeshStandardMaterial({ color: "#0f172a", roughness: 0.4 });
+    const woodDoorMat = new THREE.MeshStandardMaterial({ color: "#964e22", roughness: 0.6 });
+    const goldMat = new THREE.MeshStandardMaterial({ color: "#fbbf24", metalness: 0.8, roughness: 0.25 });
+    const glassDoorMat = new THREE.MeshPhysicalMaterial({ color: "#93c5fd", roughness: 0.1, transmission: 0.7, transparent: true, opacity: 0.75 });
 
-    // --- 4. Surroundings & Walkway ---
-    // Ground lawn
-    box([60, 0.3, 70], [0, -0.15, 20], materials.ground);
-    // Main granite entrance walkway
-    box([6.4, 0.15, 32], [0, 0.05, 14], materials.concrete);
+    // ========================================================================
+    // --- 3. BUILD ALL 10 3D ENVIRONMENTS BASED ON REFERENCE IMAGES ---
+    // ========================================================================
 
-    // Walkway LED Bollards
-    for (let bz = 4; bz <= 26; bz += 4.5) {
-      cylinder(0.08, 0.9, [-3.6, 0.45, bz], materials.dark);
-      cylinder(0.1, 0.12, [-3.6, 0.9, bz], materials.warm);
-      cylinder(0.08, 0.9, [3.6, 0.45, bz], materials.dark);
-      cylinder(0.1, 0.12, [3.6, 0.9, bz], materials.warm);
-    }
+    // Zone 1: Building Exterior & Grounds (z = 0 facing +Z)
+    // References: dormitory-building.png, university-campus.png, d1..d6
+    const exteriorGroup = new THREE.Group();
+    exteriorGroup.position.set(0, 0, 0);
+    world.add(exteriorGroup);
+    buildBuildingExterior(exteriorGroup);
 
-    // --- 5. Building Facade (Texture from dormitory-building.png) ---
-    const buildingGroup = new THREE.Group();
-    buildingGroup.position.set(0, 0, 0);
-    world.add(buildingGroup);
-
-    const texLoader = new THREE.TextureLoader();
-    const buildingTexture = texLoader.load("/images/dormitory-building.png", (tex) => {
-      tex.colorSpace = THREE.SRGBColorSpace;
-    });
-
-    const facadeWidth = 34;
-    const facadeHeight = 15;
-    const facadeMat = new THREE.MeshStandardMaterial({
-      map: buildingTexture,
-      roughness: 0.65,
-      metalness: 0.1
-    });
-
-    // Left Facade Wing
-    const leftWingWidth = (facadeWidth - 4.6) / 2;
-    const leftWing = new THREE.Mesh(new THREE.PlaneGeometry(leftWingWidth, facadeHeight), facadeMat);
-    leftWing.position.set(-facadeWidth / 4 - 1.15, facadeHeight / 2, 0);
-    buildingGroup.add(leftWing);
-
-    // Right Facade Wing
-    const rightWing = new THREE.Mesh(new THREE.PlaneGeometry(leftWingWidth, facadeHeight), facadeMat);
-    rightWing.position.set(facadeWidth / 4 + 1.15, facadeHeight / 2, 0);
-    buildingGroup.add(rightWing);
-
-    // Header above entrance portal
-    const portalTop = new THREE.Mesh(new THREE.PlaneGeometry(4.6, facadeHeight - 4.4), facadeMat);
-    portalTop.position.set(0, 4.4 + (facadeHeight - 4.4) / 2, 0);
-    buildingGroup.add(portalTop);
-
-    // Building side walls & roof
-    box([0.5, facadeHeight, 75], [-facadeWidth / 2, facadeHeight / 2, -37.5], materials.dark, buildingGroup);
-    box([0.5, facadeHeight, 75], [facadeWidth / 2, facadeHeight / 2, -37.5], materials.dark, buildingGroup);
-    box([facadeWidth + 0.6, 0.5, 75], [0, facadeHeight, -37.5], materials.dark, buildingGroup);
-
-    // --- 6. Entrance Portal & Canopy ---
-    const portalH = 4.2;
-    const portalW = 4.6;
-
-    // Portal arch frame
-    box([0.35, portalH, 0.5], [-portalW / 2 + 0.17, portalH / 2, 0.05], materials.dark, buildingGroup);
-    box([0.35, portalH, 0.5], [portalW / 2 - 0.17, portalH / 2, 0.05], materials.dark, buildingGroup);
-    box([portalW + 0.4, 0.4, 0.5], [0, portalH + 0.2, 0.05], materials.dark, buildingGroup);
-
-    // Modern Entrance Canopy
-    const canopyGroup = new THREE.Group();
-    canopyGroup.position.set(0, portalH + 0.25, 1.6);
-    buildingGroup.add(canopyGroup);
-
-    box([portalW + 2.4, 0.15, 3.4], [0, 0, 0], materials.dark, canopyGroup);
-    box([portalW + 2.0, 0.08, 3.0], [0, 0.12, 0], materials.glass, canopyGroup);
-    cylinder(0.08, 4.4, [-portalW / 2 - 0.9, -2.2, 1.4], materials.dark, canopyGroup);
-    cylinder(0.08, 4.4, [portalW / 2 + 0.9, -2.2, 1.4], materials.dark, canopyGroup);
-
-    // Illuminated TPU Dormitory Sign
-    const signPlate = box([4.6, 0.5, 0.15], [0, 0.38, 1.7], materials.dark, canopyGroup);
-    const signTextMat = new THREE.MeshStandardMaterial({
-      color: "#0f263d",
-      emissive: "#38bdf8",
-      emissiveIntensity: 0.6,
-      roughness: 0.3
-    });
-    box([4.2, 0.35, 0.17], [0, 0.38, 1.71], signTextMat, canopyGroup);
-
-    // --- 7. Double Entrance Doors (Bino Eshiklari) ---
-    const doorW = 1.3;
-    const doorH = 3.6;
+    // Zone 2: Main Entrance Doors (at z = 0)
+    // Two large swing doors that open wide inward
+    const doorW = 1.35;
+    const doorH = 3.8;
     const doorThick = 0.08;
 
-    // Sidelight glass panels
-    box([0.8, portalH - 0.2, 0.08], [-portalW / 2 + 0.55, portalH / 2, 0.05], materials.glass, buildingGroup);
-    box([0.8, portalH - 0.2, 0.08], [portalW / 2 - 0.55, portalH / 2, 0.05], materials.glass, buildingGroup);
-
-    // Left Door Pivot (at x = -doorW)
     const doorLPivot = new THREE.Group();
     doorLPivot.position.set(-doorW, 0, 0.05);
-    buildingGroup.add(doorLPivot);
-
+    world.add(doorLPivot);
     const doorL = new THREE.Group();
     doorLPivot.add(doorL);
-    box([0.1, doorH, doorThick], [0.05, doorH / 2, 0], materials.dark, doorL);
-    box([0.1, doorH, doorThick], [doorW - 0.05, doorH / 2, 0], materials.dark, doorL);
-    box([doorW, 0.12, doorThick], [doorW / 2, doorH - 0.06, 0], materials.dark, doorL);
-    box([doorW, 0.2, doorThick], [doorW / 2, 0.1, 0], materials.dark, doorL);
-    box([doorW - 0.2, doorH - 0.45, 0.04], [doorW / 2, doorH / 2, 0], materials.glass, doorL);
-    box([0.04, 1.2, 0.06], [doorW - 0.15, doorH / 2, 0.06], materials.gold, doorL);
-    box([0.04, 1.2, 0.06], [doorW - 0.15, doorH / 2, -0.06], materials.gold, doorL);
+    box([0.1, doorH, doorThick], [0.05, doorH / 2, 0], darkMat, doorL);
+    box([0.1, doorH, doorThick], [doorW - 0.05, doorH / 2, 0], darkMat, doorL);
+    box([doorW, 0.12, doorThick], [doorW / 2, doorH - 0.06, 0], darkMat, doorL);
+    box([doorW, 0.2, doorThick], [doorW / 2, 0.1, 0], darkMat, doorL);
+    box([doorW - 0.2, doorH - 0.45, 0.04], [doorW / 2, doorH / 2, 0], glassDoorMat, doorL);
+    box([0.04, 1.2, 0.06], [doorW - 0.15, doorH / 2, 0.06], goldMat, doorL);
 
-    // Right Door Pivot (at x = +doorW)
     const doorRPivot = new THREE.Group();
     doorRPivot.position.set(doorW, 0, 0.05);
-    buildingGroup.add(doorRPivot);
-
+    world.add(doorRPivot);
     const doorR = new THREE.Group();
     doorRPivot.add(doorR);
-    box([0.1, doorH, doorThick], [-0.05, doorH / 2, 0], materials.dark, doorR);
-    box([0.1, doorH, doorThick], [-doorW + 0.05, doorH / 2, 0], materials.dark, doorR);
-    box([doorW, 0.12, doorThick], [-doorW / 2, doorH - 0.06, 0], materials.dark, doorR);
-    box([doorW, 0.2, doorThick], [-doorW / 2, 0.1, 0], materials.dark, doorR);
-    box([doorW - 0.2, doorH - 0.45, 0.04], [-doorW / 2, doorH / 2, 0], materials.glass, doorR);
-    box([0.04, 1.2, 0.06], [-doorW + 0.15, doorH / 2, 0.06], materials.gold, doorR);
-    box([0.04, 1.2, 0.06], [-doorW + 0.15, doorH / 2, -0.06], materials.gold, doorR);
+    box([0.1, doorH, doorThick], [-0.05, doorH / 2, 0], darkMat, doorR);
+    box([0.1, doorH, doorThick], [-doorW + 0.05, doorH / 2, 0], darkMat, doorR);
+    box([doorW, 0.12, doorThick], [-doorW / 2, doorH - 0.06, 0], darkMat, doorR);
+    box([doorW, 0.2, doorThick], [-doorW / 2, 0.1, 0], darkMat, doorR);
+    box([doorW - 0.2, doorH - 0.45, 0.04], [-doorW / 2, doorH / 2, 0], glassDoorMat, doorR);
+    box([0.04, 1.2, 0.06], [-doorW + 0.15, doorH / 2, 0.06], goldMat, doorR);
 
-    // --- 8. Interior Lobby & Corridor ---
-    const lobbyGroup = new THREE.Group();
-    world.add(lobbyGroup);
+    // Zone 3: Reception & Main Hall (Atrium) (z = -12 to -22)
+    // References: contact-background.jpeg, d2.jpeg
+    const receptionGroup = new THREE.Group();
+    receptionGroup.position.set(0, 0, -12);
+    world.add(receptionGroup);
+    buildMainEntranceReception(receptionGroup);
 
-    // Lobby Floor & Ceiling
-    box([16, 0.2, 14], [0, 0, -6], materials.wood, lobbyGroup);
-    box([16, 0.2, 14], [0, 4.4, -6], materials.white, lobbyGroup);
-    box([0.3, 4.4, 14], [-8, 2.2, -6], materials.dark, lobbyGroup);
-    box([0.3, 4.4, 14], [8, 2.2, -6], materials.dark, lobbyGroup);
+    const atriumGroup = new THREE.Group();
+    atriumGroup.position.set(0, 0, -22);
+    world.add(atriumGroup);
+    buildMainHall(atriumGroup);
 
-    // Reception Desk
-    box([3.6, 1.1, 1.2], [-4.2, 0.55, -6], materials.warm, lobbyGroup);
-    box([3.8, 0.1, 1.4], [-4.2, 1.15, -6], materials.dark, lobbyGroup);
+    // Zone 4: Shared Kitchen & Dining Hall (z = -38)
+    // References: k1.jpeg, k2.jpeg, k3.jpeg
+    const kitchenGroup = new THREE.Group();
+    kitchenGroup.position.set(0, 0, -38);
+    world.add(kitchenGroup);
+    buildSharedKitchen(kitchenGroup);
 
-    // Lobby Point Light
-    const lobbyLight = new THREE.PointLight("#ffedd5", 2.2, 16);
-    lobbyLight.position.set(0, 3.8, -5);
-    lobbyGroup.add(lobbyLight);
+    // Zone 5: Library, Study Carrels & Coworking Hub (z = -56)
+    // References: l1.jpeg, l2.jpeg, l3.jpeg
+    const libraryGroup = new THREE.Group();
+    libraryGroup.position.set(0, 0, -56);
+    world.add(libraryGroup);
+    buildLibraryStudy(libraryGroup);
 
-    // Corridor extending to the rooms
-    box([4.2, 0.2, 54], [0, 0, -40], materials.dark, lobbyGroup);
-    box([4.2, 0.2, 54], [0, 4.4, -40], materials.white, lobbyGroup);
-    box([0.3, 4.4, 54], [-2.1, 2.2, -40], materials.dark, lobbyGroup);
-    box([0.3, 4.4, 54], [2.1, 2.2, -40], materials.dark, lobbyGroup);
+    // Zone 6: Sports & Basketball Arena (z = -74)
+    // References: b1.jpeg, b2.webp, b3.jpeg
+    const sportsGroup = new THREE.Group();
+    sportsGroup.position.set(0, 0, -74);
+    world.add(sportsGroup);
+    buildSportsBasketball(sportsGroup);
 
-    // Linear Corridor Lights
-    for (let lz = -14; lz >= -64; lz -= 7) {
-      box([0.2, 0.06, 3.5], [0, 4.35, lz], materials.warm, lobbyGroup);
-    }
-
-    // --- 9. The 3 Detailed 3D Rooms ---
-    // Room 1 (Capsule Pods at z = -18)
+    // Zone 7: Room 01 — Kapsula Pod Yotoqxona (z = -92)
+    // Reference: room1.jpeg
     const room1Group = new THREE.Group();
-    room1Group.position.set(0, 0, -18);
+    room1Group.position.set(0, 0, -92);
     world.add(room1Group);
     buildRoom1Capsule(room1Group);
-
-    // Room 1 Door (Pivot at x = -1.1, z = -14.6)
     const r1DoorPivot = new THREE.Group();
-    r1DoorPivot.position.set(-1.1, 0, -14.6);
+    r1DoorPivot.position.set(-1.1, 0, -88.6);
     world.add(r1DoorPivot);
-    const room1Door = box([1.1, 2.8, 0.08], [0.55, 1.4, 0], materials.wood, r1DoorPivot);
-    box([0.04, 0.8, 0.06], [0.95, 1.4, 0.05], materials.gold, room1Door);
+    box([1.1, 2.8, 0.08], [0.55, 1.4, 0], woodDoorMat, r1DoorPivot);
 
-    // Room 2 (Bunk Beds at z = -38)
+    // Zone 8: Room 02 — Minimalist Oq Bunk Xona (z = -110)
+    // Reference: room2.jpeg
     const room2Group = new THREE.Group();
-    room2Group.position.set(0, 0, -38);
+    room2Group.position.set(0, 0, -110);
     world.add(room2Group);
     buildRoom2Bunk(room2Group);
-
-    // Room 2 Door
     const r2DoorPivot = new THREE.Group();
-    r2DoorPivot.position.set(-1.1, 0, -34.6);
+    r2DoorPivot.position.set(-1.1, 0, -106.6);
     world.add(r2DoorPivot);
-    const room2Door = box([1.1, 2.8, 0.08], [0.55, 1.4, 0], materials.wood, r2DoorPivot);
-    box([0.04, 0.8, 0.06], [0.95, 1.4, 0.05], materials.gold, room2Door);
+    box([1.1, 2.8, 0.08], [0.55, 1.4, 0], woodDoorMat, r2DoorPivot);
 
-    // Room 3 (Twin Beds at z = -58)
+    // Zone 9: Room 03 — Standart 2 Kishilik Xona (z = -128)
+    // Reference: room3.jpeg
     const room3Group = new THREE.Group();
-    room3Group.position.set(0, 0, -58);
+    room3Group.position.set(0, 0, -128);
     world.add(room3Group);
     buildRoom3Twin(room3Group);
-
-    // Room 3 Door
     const r3DoorPivot = new THREE.Group();
-    r3DoorPivot.position.set(-1.1, 0, -54.6);
+    r3DoorPivot.position.set(-1.1, 0, -124.6);
     world.add(r3DoorPivot);
-    const room3Door = box([1.1, 2.8, 0.08], [0.55, 1.4, 0], materials.wood, r3DoorPivot);
-    box([0.04, 0.8, 0.06], [0.95, 1.4, 0.05], materials.gold, room3Door);
+    box([1.1, 2.8, 0.08], [0.55, 1.4, 0], woodDoorMat, r3DoorPivot);
 
-    // --- 10. Controls ---
+    // Zone 10: Room 04 — Deluxe Studio Xona (z = -146)
+    // References: hero-dorm-room.jpeg, hero-dorm-room.png
+    const room4Group = new THREE.Group();
+    room4Group.position.set(0, 0, -146);
+    world.add(room4Group);
+    buildRoom4Studio(room4Group);
+    const r4DoorPivot = new THREE.Group();
+    r4DoorPivot.position.set(-1.1, 0, -142.6);
+    world.add(r4DoorPivot);
+    box([1.1, 2.8, 0.08], [0.55, 1.4, 0], woodDoorMat, r4DoorPivot);
+
+    // Connecting Dormitory Corridor (z = -80 to -160)
+    const corridorGroup = new THREE.Group();
+    world.add(corridorGroup);
+    box([4.4, 0.2, 85], [0, 0, -122.5], darkMat, corridorGroup);
+    box([4.4, 0.2, 85], [0, 4.4, -122.5], darkMat, corridorGroup);
+    box([0.3, 4.4, 85], [-2.2, 2.2, -122.5], darkMat, corridorGroup);
+    box([0.3, 4.4, 85], [2.2, 2.2, -122.5], darkMat, corridorGroup);
+
+    // Corridor Linear Lights
+    const warmLightMat = new THREE.MeshStandardMaterial({ color: "#fef08a", emissive: "#facc15", emissiveIntensity: 0.7 });
+    for (let lz = -84; lz >= -154; lz -= 6) {
+      box([0.2, 0.06, 3.2], [0, 4.35, lz], warmLightMat, corridorGroup);
+    }
+
+    // --- 4. Controls ---
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.06;
     controls.enabled = false;
     tourState.current.controls = controls;
 
-    // --- 11. GSAP ScrollTrigger Timeline ---
+    // --- 5. GSAP ScrollTrigger Timeline (Master Cinematic Fly-Through) ---
     const scrollTimeline = gsap.timeline({
       scrollTrigger: {
         trigger: section,
         start: "top top",
-        end: () => `+=${window.innerHeight * 5.5}`,
-        scrub: 1.1,
+        end: () => `+=${window.innerHeight * 7.5}`,
+        scrub: 1.15,
         pin: true,
         pinSpacing: true,
         invalidateOnRefresh: true,
@@ -910,12 +1113,16 @@ function CampusTour({ onOpen3D, openBooking }) {
         onUpdate: ({ progress }) => {
           tourState.current.progress = progress;
           let sceneIdx = 0;
-          if (progress < 0.16) sceneIdx = 0;
-          else if (progress < 0.32) sceneIdx = 1;
-          else if (progress < 0.44) sceneIdx = 2;
-          else if (progress < 0.62) sceneIdx = 3;
-          else if (progress < 0.82) sceneIdx = 4;
-          else sceneIdx = 5;
+          if (progress < 0.10) sceneIdx = 0;
+          else if (progress < 0.18) sceneIdx = 1;
+          else if (progress < 0.30) sceneIdx = 2;
+          else if (progress < 0.42) sceneIdx = 3;
+          else if (progress < 0.54) sceneIdx = 4;
+          else if (progress < 0.66) sceneIdx = 5;
+          else if (progress < 0.75) sceneIdx = 6;
+          else if (progress < 0.84) sceneIdx = 7;
+          else if (progress < 0.92) sceneIdx = 8;
+          else sceneIdx = 9;
           setScene(sceneIdx);
         }
       }
@@ -924,7 +1131,7 @@ function CampusTour({ onOpen3D, openBooking }) {
     scrollTimeline.to(tourState.current, { progress: 1, duration: 1, ease: "none" });
     scrollTimelineRef.current = scrollTimeline;
 
-    // --- 12. Resize Handler ---
+    // --- 6. Resize Handler ---
     const handleResize = () => {
       if (!mount) return;
       camera.aspect = mount.clientWidth / mount.clientHeight;
@@ -935,86 +1142,98 @@ function CampusTour({ onOpen3D, openBooking }) {
     resizeObserver.observe(mount);
     handleResize();
 
-    // --- 13. Render Loop ---
+    // --- 7. Render Loop ---
     let frameId;
     const render = () => {
       const progress = tourState.current.progress;
 
-      // 1. Calculate Camera Target & Position based on progress
+      // Camera coordinates along the 10 zones
       const targetPos = new THREE.Vector3();
       const targetLook = new THREE.Vector3();
 
-      if (progress < 0.16) {
-        // Stage 0: Outside Building, looking at facade
-        const t = progress / 0.16;
-        targetPos.set(0, 2.5 - t * 0.4, 15 - t * 9.5); // [0, 2.5, 15] -> [0, 2.1, 5.5]
-        targetLook.set(0, 2.0, 0);
-      } else if (progress < 0.32) {
-        // Stage 1: Entrance Doors Opening & Passing Through
-        const t = (progress - 0.16) / 0.16;
-        targetPos.set(0, 2.1 - t * 0.3, 5.5 - t * 7.5); // [0, 2.1, 5.5] -> [0, 1.8, -2.0]
-        targetLook.set(0, 1.8, -10);
-      } else if (progress < 0.44) {
-        // Stage 2: In Lobby, heading to Room 1
-        const t = (progress - 0.32) / 0.12;
-        targetPos.set(0, 1.8, -2.0 - t * 11.5); // [0, 1.8, -2.0] -> [0, 1.8, -13.5]
-        targetLook.set(0, 1.6, -18);
-      } else if (progress < 0.62) {
-        // Stage 3: Inside Room 01 (Capsule Pods at z = -18)
-        const t = (progress - 0.44) / 0.18;
-        targetPos.set(Math.sin(t * Math.PI) * 0.35, 1.65, -13.5 - t * 4.2);
-        targetLook.set(-0.35, 1.5, -19.5);
-      } else if (progress < 0.82) {
-        // Stage 4: Corridor -> Inside Room 02 (Bunk Beds at z = -38)
-        const t = (progress - 0.62) / 0.20;
-        if (t < 0.35) {
-          const sub = t / 0.35;
-          targetPos.set(0, 1.7, -17.7 - sub * 15.0);
-          targetLook.set(0, 1.6, -38);
-        } else {
-          const sub = (t - 0.35) / 0.65;
-          targetPos.set(Math.sin(sub * Math.PI) * 0.35, 1.65, -32.7 - sub * 4.5);
-          targetLook.set(0, 1.5, -39.5);
-        }
+      if (progress < 0.10) {
+        // Zone 1: Exterior Building & Approach (z = 24 -> 5.5)
+        const t = progress / 0.10;
+        targetPos.set(0, 3.2 - t * 1.1, 24 - t * 18.5);
+        targetLook.set(0, 2.2, 0);
+      } else if (progress < 0.18) {
+        // Zone 2: Entrance & Doors Opening (z = 5.5 -> -2.5)
+        const t = (progress - 0.10) / 0.08;
+        targetPos.set(0, 2.1 - t * 0.3, 5.5 - t * 8.0);
+        targetLook.set(0, 1.8, -12);
+      } else if (progress < 0.30) {
+        // Zone 3: Reception & Atrium Main Hall (z = -2.5 -> -22)
+        const t = (progress - 0.18) / 0.12;
+        targetPos.set(Math.sin(t * Math.PI) * 0.5, 1.9, -2.5 - t * 18.0);
+        targetLook.set(0, 1.8, -20);
+      } else if (progress < 0.42) {
+        // Zone 4: Shared Kitchen & Dining (z = -20.5 -> -38)
+        const t = (progress - 0.30) / 0.12;
+        targetPos.set(Math.sin(t * Math.PI) * 0.6, 1.8, -20.5 - t * 17.5);
+        targetLook.set(0, 1.5, -40);
+      } else if (progress < 0.54) {
+        // Zone 5: Library, Study & Coworking (z = -38 -> -56)
+        const t = (progress - 0.42) / 0.12;
+        targetPos.set(Math.sin(t * Math.PI) * 0.6, 1.8, -38 - t * 18.0);
+        targetLook.set(0, 1.6, -58);
+      } else if (progress < 0.66) {
+        // Zone 6: Sports & Basketball Arena (z = -56 -> -74)
+        const t = (progress - 0.54) / 0.12;
+        targetPos.set(Math.sin(t * Math.PI) * 0.5, 1.9, -56 - t * 18.0);
+        targetLook.set(0, 1.8, -76);
+      } else if (progress < 0.75) {
+        // Zone 7: Room 01 — Kapsula Pod Xona (z = -74 -> -92)
+        const t = (progress - 0.66) / 0.09;
+        targetPos.set(Math.sin(t * Math.PI) * 0.4, 1.65, -74 - t * 18.0);
+        targetLook.set(-0.35, 1.5, -93.5);
+      } else if (progress < 0.84) {
+        // Zone 8: Room 02 — Minimalist Bunk Xona (z = -92 -> -110)
+        const t = (progress - 0.75) / 0.09;
+        targetPos.set(Math.sin(t * Math.PI) * 0.4, 1.7, -92 - t * 18.0);
+        targetLook.set(0, 1.5, -111.5);
+      } else if (progress < 0.92) {
+        // Zone 9: Room 03 — Standart Twin Xona (z = -110 -> -128)
+        const t = (progress - 0.84) / 0.08;
+        targetPos.set(Math.sin(t * Math.PI) * 0.4, 1.7, -110 - t * 18.0);
+        targetLook.set(0, 1.5, -129.5);
       } else {
-        // Stage 5: Corridor -> Inside Room 03 (Twin Beds at z = -58)
-        const t = (progress - 0.82) / 0.18;
-        if (t < 0.35) {
-          const sub = t / 0.35;
-          targetPos.set(0, 1.7, -37.2 - sub * 15.0);
-          targetLook.set(0, 1.6, -58);
-        } else {
-          const sub = (t - 0.35) / 0.65;
-          targetPos.set(Math.sin(sub * Math.PI) * 0.35, 1.65, -52.2 - sub * 4.5);
-          targetLook.set(0, 1.5, -59.5);
-        }
+        // Zone 10: Room 04 — Deluxe Studio Xona (z = -128 -> -146)
+        const t = (progress - 0.92) / 0.08;
+        targetPos.set(Math.sin(t * Math.PI) * 0.4, 1.7, -128 - t * 18.0);
+        targetLook.set(0, 1.5, -147.5);
       }
 
-      // 2. Door Opening Animations Driven by Scroll Progress
+      // Smooth Door Rotations
       // Main Entrance Doors:
-      const doorProgress = THREE.MathUtils.clamp((progress - 0.14) / 0.14, 0, 1);
+      const doorProgress = THREE.MathUtils.clamp((progress - 0.09) / 0.07, 0, 1);
       doorLPivot.rotation.y = -doorProgress * 1.55;
       doorRPivot.rotation.y = doorProgress * 1.55;
 
-      // Room 1 Door:
-      const r1Progress = THREE.MathUtils.clamp((progress - 0.38) / 0.08, 0, 1);
+      // Room Doors:
+      const r1Progress = THREE.MathUtils.clamp((progress - 0.64) / 0.05, 0, 1);
       r1DoorPivot.rotation.y = -r1Progress * 1.55;
 
-      // Room 2 Door:
-      const r2Progress = THREE.MathUtils.clamp((progress - 0.62) / 0.08, 0, 1);
+      const r2Progress = THREE.MathUtils.clamp((progress - 0.73) / 0.05, 0, 1);
       r2DoorPivot.rotation.y = -r2Progress * 1.55;
 
-      // Room 3 Door:
-      const r3Progress = THREE.MathUtils.clamp((progress - 0.82) / 0.08, 0, 1);
+      const r3Progress = THREE.MathUtils.clamp((progress - 0.82) / 0.05, 0, 1);
       r3DoorPivot.rotation.y = -r3Progress * 1.55;
 
-      // 3. Orbit Controls when inside rooms
-      const isInRoom =
-        (progress >= 0.44 && progress <= 0.60) ||
-        (progress >= 0.70 && progress <= 0.80) ||
-        (progress >= 0.88 && progress <= 0.99);
+      const r4Progress = THREE.MathUtils.clamp((progress - 0.90) / 0.05, 0, 1);
+      r4DoorPivot.rotation.y = -r4Progress * 1.55;
 
-      if (isInRoom && controls.state !== -1) {
+      // Interactive 360 Camera Controls (Active inside rooms & facilities)
+      const isInInteractiveSpace =
+        (progress >= 0.22 && progress <= 0.28) || // Hall
+        (progress >= 0.35 && progress <= 0.40) || // Kitchen
+        (progress >= 0.46 && progress <= 0.52) || // Library
+        (progress >= 0.58 && progress <= 0.64) || // Sports
+        (progress >= 0.69 && progress <= 0.74) || // Room 1
+        (progress >= 0.78 && progress <= 0.83) || // Room 2
+        (progress >= 0.86 && progress <= 0.91) || // Room 3
+        (progress >= 0.94 && progress <= 0.99);   // Room 4
+
+      if (isInInteractiveSpace && controls.state !== -1) {
         controls.enabled = true;
         controls.target.lerp(targetLook, 0.08);
         controls.update();
@@ -1040,11 +1259,10 @@ function CampusTour({ onOpen3D, openBooking }) {
         mount.removeChild(renderer.domElement);
       }
     };
-  }, []);
+  }, [isNight]);
 
-  const curScene = scenesInfo[scene];
-  const activeRoomMeta =
-    curScene.roomIndex !== undefined ? ROOM_3D_METADATA[curScene.roomIndex] : null;
+  const curScene = scenesInfo[scene] || scenesInfo[0];
+  const isRoom = curScene.category === "room";
 
   return (
     <section className="campus-tour" id="tour" ref={sectionRef}>
@@ -1052,64 +1270,181 @@ function CampusTour({ onOpen3D, openBooking }) {
         <div className="campus-canvas" ref={mountRef} />
         <div className="campus-vignette" />
 
-        {/* TOP BAR */}
+        {/* TOP BAR / NAVIGATION */}
         <div className="campus-topbar">
           <span className="campus-logo">
-            TPU / <b>TALABALAR SHAHARCHASI & BINO SAYOHATI</b>
+            TPU / <b>3D DORMITORY MASTER EXPERIENCE</b>
           </span>
-          <span>0{scene + 1} / 06</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <button
+              type="button"
+              className="tool-pill"
+              style={{
+                background: "rgba(6, 21, 34, 0.85)",
+                backdropFilter: "blur(8px)",
+                border: "1px solid rgba(255,255,255,0.2)",
+                color: "#e2e8f0",
+                padding: "6px 14px",
+                borderRadius: 20,
+                fontSize: 11,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6
+              }}
+              onClick={() => setShowRefCompare((c) => !c)}
+              title="Haqiqiy rasm bilan solishtirish"
+            >
+              <Eye size={13} color="#38bdf8" /> Solishtirish
+            </button>
+
+            <button
+              type="button"
+              className="tool-pill"
+              style={{
+                background: "rgba(6, 21, 34, 0.85)",
+                backdropFilter: "blur(8px)",
+                border: "1px solid rgba(255,255,255,0.2)",
+                color: "#e2e8f0",
+                padding: "6px 14px",
+                borderRadius: 20,
+                fontSize: 11,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6
+              }}
+              onClick={() => setIsNight((n) => !n)}
+              title="Kunduzgi / Tungi yorug‘lik"
+            >
+              {isNight ? <Moon size={13} color="#38bdf8" /> : <Sun size={13} color="#f59e0b" />}
+              {isNight ? "Tun" : "Kun"}
+            </button>
+
+            <span>
+              {String(scene + 1).padStart(2, "0")} / {String(scenesInfo.length).padStart(2, "0")}
+            </span>
+          </div>
         </div>
+
+        {/* REFERENCE IMAGE COMPARISON PIP MODAL */}
+        {showRefCompare && (
+          <div
+            className="room-ref-compare-card"
+            style={{
+              position: "absolute",
+              top: 76,
+              right: 24,
+              width: 340,
+              background: "rgba(6, 21, 34, 0.95)",
+              backdropFilter: "blur(16px)",
+              border: "1px solid rgba(56, 189, 248, 0.4)",
+              borderRadius: 16,
+              padding: 16,
+              zIndex: 30,
+              boxShadow: "0 16px 40px rgba(0,0,0,0.6)"
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <b style={{ color: "#38bdf8", fontSize: 12 }}>Haqiqiy Reference Fotosurat</b>
+              <button
+                type="button"
+                onClick={() => setShowRefCompare(false)}
+                style={{ border: 0, background: "transparent", color: "#94a3b8", cursor: "pointer", fontSize: 18 }}
+              >
+                ×
+              </button>
+            </div>
+            <img
+              src={curScene.refImage}
+              alt={curScene.name}
+              style={{ width: "100%", height: 180, objectFit: "cover", borderRadius: 10, marginBottom: 8 }}
+            />
+            <p style={{ margin: 0, fontSize: 11, color: "#cbd5e1", lineHeight: 1.5 }}>
+              Ushbu 3D muhit aynan shu fotosurat arxitekturasi, mebellari va yorug‘ligi asosida aniq 3D model sifatida yaratildi.
+            </p>
+          </div>
+        )}
 
         {/* CINEMATIC TITLE & DESCRIPTION OVERLAY */}
         <div className="campus-copy">
-          <span className="tour-kicker">{curScene.kicker}</span>
-          <h2>{curScene.title}</h2>
-          <p>{curScene.desc}</p>
+          <span className="tour-kicker">{curScene.tag}</span>
+          <h2>{curScene.name}</h2>
+          <p>{curScene.description}</p>
 
-          {/* ACTIVE ROOM CTA CARD */}
-          {activeRoomMeta && (
-            <div
-              className="tour-room-card"
-              style={{
-                marginTop: 20,
-                padding: "16px 20px",
-                borderRadius: 16,
-                background: "rgba(6, 21, 34, 0.9)",
-                backdropFilter: "blur(12px)",
-                border: "1px solid rgba(56, 189, 248, 0.35)",
-                boxShadow: "0 12px 30px rgba(0,0,0,0.5)",
-                display: "inline-flex",
-                flexDirection: "column",
-                gap: 10,
-                maxWidth: 360
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ color: "#38bdf8", fontSize: 11, fontWeight: 700, textTransform: "uppercase" }}>
-                  {activeRoomMeta.capacity}
-                </span>
-                <strong style={{ color: "#fff", fontSize: 18 }}>
-                  {activeRoomMeta.price} <small style={{ fontSize: 11, color: "#94a3b8" }}>/ oy</small>
+          {/* ACTIVE ROOM / FACILITY SPECS CARD */}
+          <div
+            className="tour-room-card"
+            style={{
+              marginTop: 18,
+              padding: "16px 20px",
+              borderRadius: 16,
+              background: "rgba(6, 21, 34, 0.92)",
+              backdropFilter: "blur(14px)",
+              border: "1px solid rgba(56, 189, 248, 0.35)",
+              boxShadow: "0 16px 36px rgba(0,0,0,0.55)",
+              display: "inline-flex",
+              flexDirection: "column",
+              gap: 10,
+              maxWidth: 380
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ color: "#38bdf8", fontSize: 11, fontWeight: 700, textTransform: "uppercase" }}>
+                {curScene.type || curScene.category}
+              </span>
+              {curScene.price && (
+                <strong style={{ color: "#fff", fontSize: 20 }}>
+                  {curScene.price} <small style={{ fontSize: 11, color: "#94a3b8" }}>/ {curScene.period}</small>
                 </strong>
-              </div>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              )}
+            </div>
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "2px 0" }}>
+              {curScene.amenities.slice(0, 3).map((a) => (
+                <span
+                  key={a}
+                  style={{
+                    fontSize: 10,
+                    background: "rgba(255,255,255,0.08)",
+                    color: "#e2e8f0",
+                    padding: "3px 8px",
+                    borderRadius: 6
+                  }}
+                >
+                  ✓ {a}
+                </span>
+              ))}
+            </div>
+
+            <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 4 }}>
+              {isRoom ? (
                 <button
                   type="button"
                   className="btn btn-primary"
-                  style={{ padding: "8px 16px", fontSize: 12, borderRadius: 12 }}
-                  onClick={() => openBooking?.({ title: activeRoomMeta.name, price: activeRoomMeta.price })}
+                  style={{ padding: "8px 18px", fontSize: 12, borderRadius: 12 }}
+                  onClick={() => openBooking?.({ title: curScene.name, price: curScene.price })}
                 >
                   Xonani band qilish <ArrowRight size={14} />
                 </button>
-                <span style={{ fontSize: 11, color: "#cbd5e1", display: "inline-flex", alignItems: "center", gap: 4 }}>
-                  <RotateCw size={13} color="#38bdf8" /> 360° erkin aylantiring
-                </span>
-              </div>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  style={{ padding: "8px 16px", fontSize: 12, borderRadius: 12 }}
+                  onClick={() => setShowRefCompare(true)}
+                >
+                  <Eye size={13} /> Rasmni ko‘rish
+                </button>
+              )}
+              <span style={{ fontSize: 11, color: "#cbd5e1", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <RotateCw size={13} color="#38bdf8" /> 360° erkin aylantiring
+              </span>
             </div>
-          )}
+          </div>
         </div>
 
-        {/* 3D SCENE JUMP BUTTONS */}
+        {/* 10 3D SCENE JUMP BUTTONS (BOTTOM PILLS) */}
         <div className="campus-scenes-nav">
           {locations.map((loc, idx) => (
             <button
@@ -1135,21 +1470,21 @@ function CampusTour({ onOpen3D, openBooking }) {
 
         {/* CURRENT LOCATION BADGE */}
         <div className="campus-location">
-          <span className="location-dot" /> {curScene.tag}
+          <span className="location-dot" /> {curScene.name}
         </div>
 
         {/* HINT & PROGRESS */}
         <div className="campus-scroll-hint">
           <span className="scroll-line" />
-          <span>Pastga skrol qiling — eshik ochilib, xonalar ochiladi</span>
+          <span>Pastga skrol qiling — bino eshigi ochilib, xonalar ochiladi</span>
         </div>
         <div className="campus-progress">
-          <span style={{ width: `${((scene + 1) / 6) * 100}%` }} />
+          <span style={{ width: `${((scene + 1) / scenesInfo.length) * 100}%` }} />
         </div>
 
-        {/* CONTROLS HINT */}
+        {/* FULLSCREEN BUTTON */}
         <div className="campus-controls-note">
-          {scene >= 3 ? "360° ko‘rish uchun aylantiring" : "Skrol orqali sayohat"}
+          <span>360° erkin ko‘rish</span>
           <span>↕</span>
           <button type="button" onClick={toggleTourFullscreen} aria-label="To‘liq ekran">
             ⛶
@@ -1161,7 +1496,7 @@ function CampusTour({ onOpen3D, openBooking }) {
 }
 
 function RoomDetails({ room, closeDetails, openBooking }) {
-  const roomIndex = Math.max(0, Math.min(2, (room?.id ? room.id - 1 : 0)));
+  const roomIndex = Math.max(0, Math.min(3, (room?.id ? room.id - 1 : 0)));
 
   return (
     <div className="room-detail-backdrop" onClick={closeDetails}>

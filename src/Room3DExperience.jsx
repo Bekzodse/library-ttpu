@@ -9,6 +9,7 @@ import {
   buildRoom1Capsule,
   buildRoom2Bunk,
   buildRoom3Twin,
+  buildRoom4Studio,
   ROOM_3D_METADATA
 } from "./rooms3d.js";
 
@@ -79,8 +80,10 @@ export function SingleRoom3DCanvas({ roomIndex = 0, onBookRoom, isFullScrollMode
       roomConfig = buildRoom1Capsule(roomGroup);
     } else if (roomIndex === 1) {
       roomConfig = buildRoom2Bunk(roomGroup);
-    } else {
+    } else if (roomIndex === 2) {
       roomConfig = buildRoom3Twin(roomGroup);
+    } else {
+      roomConfig = buildRoom4Studio(roomGroup);
     }
 
     // 4. Lighting

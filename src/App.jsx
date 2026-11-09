@@ -495,6 +495,7 @@ function RoomsOnly({ openBooking }) {
 function Facility3DViewer() {
   const mountRef = useRef(null);
   const [activeTab, setActiveTab] = useState("kitchen");
+  const [activeImgIndex, setActiveImgIndex] = useState(0);
   const [isNight, setIsNight] = useState(false);
   const [showRefCompare, setShowRefCompare] = useState(false);
 
@@ -502,81 +503,94 @@ function Facility3DViewer() {
     kitchen: {
       name: "Umumiy Oshxona & Ovqatlanish Maydoni",
       tag: "Oshxona (k1, k2, k3)",
-      refImages: ["/images/k1.jpeg", "/images/k2.jpeg", "/images/k3.jpeg"],
-      refImage: "/images/k1.jpeg",
-      desc: "4 ta induksion plita, dudburonlar, 2 ta zanglamas po‘lat muzlatgich, mikroto‘lqinli pechlar va 8 kishilik ovqatlanish stoli.",
-      builder: buildSharedKitchen
+      refImages: [
+        { url: "/images/k1.jpeg", label: "Asosiy Oshxona" },
+        { url: "/images/k2.jpeg", label: "Ovqatlanish Stoli" },
+        { url: "/images/k3.jpeg", label: "Muzlatgich & Texnika" }
+      ],
+      desc: "4 ta induksion plita, dudburonlar, 2 ta zanglamas po‘lat muzlatgich, mikroto‘lqinli pechlar va 8 kishilik ovqatlanish stoli."
     },
     library: {
       name: "Talabalar Kutubxonasi & Kovorking Zali",
       tag: "Kutubxona (l1, l2, l3)",
-      refImages: ["/images/l1.jpeg", "/images/l2.jpeg", "/images/l3.jpeg"],
-      refImage: "/images/l1.jpeg",
-      desc: "Shiftgacha kitob javonlari, 4 ta shaxsiy o‘qish kabinalari (carrels), noutbuk va LED chiroqlar, guruh ishi uchun taqdimot ekrani.",
-      builder: buildLibraryStudy
+      refImages: [
+        { url: "/images/l1.jpeg", label: "Kutubxona Zali" },
+        { url: "/images/l2.jpeg", label: "Mutolaa Maydoni" },
+        { url: "/images/l3.jpeg", label: "Kovorking & Guruh Ishi" }
+      ],
+      desc: "Shiftgacha kitob javonlari, 4 ta shaxsiy o‘qish kabinalari (carrels), noutbuk va LED chiroqlar, guruh ishi uchun taqdimot ekrani."
     },
     sports: {
       name: "Basketbol Maydoni & Fitnes Zali",
       tag: "Sport (b1, b2, b3)",
-      refImages: ["/images/b1.jpeg", "/images/b2.webp", "/images/b3.jpeg"],
-      refImage: "/images/b1.jpeg",
-      desc: "Standart shaffof shisha basketbol shiti, akril qoplamali maydon, gantellar va fitnes skameykasi.",
-      builder: buildSportsBasketball
+      refImages: [
+        { url: "/images/b1.jpeg", label: "Basketbol Maydoni" },
+        { url: "/images/b2.webp", label: "Fitnes Zali" },
+        { url: "/images/b3.jpeg", label: "Sport Anjomlari" }
+      ],
+      desc: "Standart shaffof shisha basketbol shiti, akril qoplamali maydon, gantellar va fitnes skameykasi."
     },
     hall: {
       name: "Asosiy Katta Xoll & Atrium",
       tag: "Markaziy Xoll (d2)",
-      refImages: ["/images/d2.jpeg"],
-      refImage: "/images/d2.jpeg",
-      desc: "2 qavatli baland shift, marmar pol, aylanma dam olish oroli va zamonaviy kutish maydoni.",
-      builder: buildMainHall
+      refImages: [
+        { url: "/images/d2.jpeg", label: "Markaziy Atrium" },
+        { url: "/images/d1.jpg", label: "TPU Binosi" },
+        { url: "/images/d6.jpeg", label: "Kechki Kampus" }
+      ],
+      desc: "2 qavatli baland shift, marmar pol, aylanma dam olish oroli va zamonaviy kutish maydoni."
     }
   };
 
   const cur = metaMap[activeTab];
+  const curImg = cur.refImages[activeImgIndex] || cur.refImages[0];
+
+  useEffect(() => {
+    setActiveImgIndex(0);
+  }, [activeTab]);
 
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
 
     const scene = new THREE.Scene();
-    const bg = isNight ? "#060f1c" : "#eef2f6";
+    const bg = isNight ? "#060f1c" : "#0a192f";
     scene.background = new THREE.Color(bg);
 
-    const camera = new THREE.PerspectiveCamera(50, mount.clientWidth / mount.clientHeight, 0.1, 100);
+    const camera = new THREE.PerspectiveCamera(65, mount.clientWidth / mount.clientHeight, 0.1, 1000);
+    camera.position.set(0, 0, 0.01);
+
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.8));
     renderer.setSize(mount.clientWidth, mount.clientHeight);
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     mount.appendChild(renderer.domElement);
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.dampingFactor = 0.055;
-    controls.maxPolarAngle = Math.PI / 2 + 0.04;
+    controls.dampingFactor = 0.06;
+    controls.rotateSpeed = -0.3; // Inverted for natural panoramic look-around
+    controls.enableZoom = true;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.35;
 
-    const hemi = new THREE.HemisphereLight(
-      isNight ? "#1e293b" : "#ffffff",
-      isNight ? "#090d16" : "#cbd5e1",
-      isNight ? 0.6 : 1.4
-    );
-    scene.add(hemi);
-    const sun = new THREE.DirectionalLight(isNight ? "#38bdf8" : "#fffbeb", isNight ? 0.8 : 2.2);
-    sun.position.set(12, 20, 14);
-    sun.castShadow = true;
-    scene.add(sun);
+    // Photorealistic 360° Sphere
+    const sphereGeo = new THREE.SphereGeometry(50, 64, 40);
+    sphereGeo.scale(-1, 1, 1);
 
-    const group = new THREE.Group();
-    scene.add(group);
-    const cfg = cur.builder(group);
+    const sphereMat = new THREE.MeshBasicMaterial({
+      color: isNight ? 0x94a3b8 : 0xffffff
+    });
 
-    if (cfg?.defaultCameraPos) camera.position.copy(cfg.defaultCameraPos);
-    else camera.position.set(0, 2.0, 6.0);
-    if (cfg?.cameraTarget) controls.target.copy(cfg.cameraTarget);
-    else controls.target.set(0, 1.5, 0);
-    controls.update();
+    const loader = new THREE.TextureLoader();
+    loader.load(curImg.url, (tex) => {
+      tex.colorSpace = THREE.SRGBColorSpace;
+      sphereMat.map = tex;
+      sphereMat.needsUpdate = true;
+    });
+
+    const sphereMesh = new THREE.Mesh(sphereGeo, sphereMat);
+    scene.add(sphereMesh);
 
     const resize = () => {
       if (!mount) return;
@@ -602,7 +616,7 @@ function Facility3DViewer() {
       renderer.dispose();
       if (mount.contains(renderer.domElement)) mount.removeChild(renderer.domElement);
     };
-  }, [activeTab, isNight]);
+  }, [curImg.url, isNight]);
 
   return (
     <div
@@ -682,7 +696,7 @@ function Facility3DViewer() {
             }}
             onClick={() => setShowRefCompare((c) => !c)}
           >
-            <Eye size={13} color="#38bdf8" /> Solishtirish
+            <Eye size={13} color="#38bdf8" /> Fotosuratlar
           </button>
           <button
             type="button"
@@ -706,6 +720,43 @@ function Facility3DViewer() {
             {isNight ? "Tun" : "Kun"}
           </button>
         </div>
+      </div>
+
+      {/* SUB-VIEW THUMBNAILS STRIP */}
+      <div
+        style={{
+          position: "absolute",
+          top: 66,
+          left: 16,
+          display: "flex",
+          gap: 6,
+          background: "rgba(6,21,34,0.85)",
+          padding: 4,
+          borderRadius: 20,
+          backdropFilter: "blur(8px)",
+          border: "1px solid rgba(255,255,255,0.12)",
+          zIndex: 10
+        }}
+      >
+        {cur.refImages.map((img, idx) => (
+          <button
+            key={img.url}
+            type="button"
+            onClick={() => setActiveImgIndex(idx)}
+            style={{
+              border: 0,
+              background: activeImgIndex === idx ? "#38bdf8" : "transparent",
+              color: activeImgIndex === idx ? "#041424" : "#94a3b8",
+              padding: "4px 10px",
+              borderRadius: 14,
+              fontSize: 10,
+              fontWeight: 700,
+              cursor: "pointer"
+            }}
+          >
+            {img.label}
+          </button>
+        ))}
       </div>
 
       {/* SOLISHTIRISH PIP */}
@@ -736,17 +787,18 @@ function Facility3DViewer() {
             </button>
           </div>
           <div style={{ display: "flex", gap: 6, overflowX: "auto" }}>
-            {cur.refImages.map((src, i) => (
+            {cur.refImages.map((item, i) => (
               <img
-                key={src}
-                src={src}
+                key={item.url}
+                src={item.url}
                 alt={`${cur.name} ${i + 1}`}
-                style={{ width: 140, height: 95, objectFit: "cover", borderRadius: 8 }}
+                style={{ width: 140, height: 95, objectFit: "cover", borderRadius: 8, cursor: "pointer", border: activeImgIndex === i ? "2px solid #38bdf8" : "1px solid rgba(255,255,255,0.2)" }}
+                onClick={() => setActiveImgIndex(i)}
               />
             ))}
           </div>
           <small style={{ display: "block", marginTop: 8, color: "#cbd5e1", fontSize: 10 }}>
-            3D model aynan ushbu fotosuratlardagi mebel va jihozlar asosida yaratilgan.
+            3D panorama aynan ushbu fotosuratlardagi mebel va jihozlar asosida 360° ko‘rinishda ishlaydi.
           </small>
         </div>
       )}
@@ -850,7 +902,11 @@ function CampusTour({ onOpen3D, openBooking }) {
   const mountRef = useRef(null);
   const sectionRef = useRef(null);
   const scrollTimelineRef = useRef(null);
-  const tourState = useRef({ progress: 0, controls: null, camera: null });
+  const sphereMatRef = useRef(null);
+  const textureCacheRef = useRef({});
+  const controlsRef = useRef(null);
+
+  const [scrollProgress, setScrollProgress] = useState(0);
   const [scene, setScene] = useState(0);
   const [isAutoTour, setIsAutoTour] = useState(false);
   const [isNight, setIsNight] = useState(false);
@@ -871,8 +927,32 @@ function CampusTour({ onOpen3D, openBooking }) {
     "🛏️ 04 Studio"
   ];
 
-  const sceneProgressTargets = [0.03, 0.14, 0.24, 0.36, 0.48, 0.60, 0.70, 0.80, 0.88, 0.96];
+  const sceneProgressTargets = [0.01, 0.12, 0.25, 0.38, 0.50, 0.62, 0.72, 0.81, 0.89, 0.96];
 
+  // Preload all environment textures for instantaneous scene transitions
+  useEffect(() => {
+    const loader = new THREE.TextureLoader();
+    scenesInfo.forEach((s) => {
+      if (s.refImage && !textureCacheRef.current[s.refImage]) {
+        loader.load(
+          s.refImage,
+          (tex) => {
+            tex.colorSpace = THREE.SRGBColorSpace;
+            textureCacheRef.current[s.refImage] = tex;
+            const cur = scenesInfo[scene] || scenesInfo[0];
+            if (cur.refImage === s.refImage && sphereMatRef.current) {
+              sphereMatRef.current.map = tex;
+              sphereMatRef.current.needsUpdate = true;
+            }
+          },
+          undefined,
+          () => {}
+        );
+      }
+    });
+  }, [scenesInfo, scene]);
+
+  // Jump to specific scene by scroll position
   const jumpToScene = (index) => {
     const trigger = scrollTimelineRef.current?.scrollTrigger;
     if (trigger) {
@@ -881,6 +961,7 @@ function CampusTour({ onOpen3D, openBooking }) {
     }
   };
 
+  // Auto-tour continuous scrolling
   const toggleAutoTour = () => {
     setIsAutoTour((prev) => !prev);
   };
@@ -901,356 +982,128 @@ function CampusTour({ onOpen3D, openBooking }) {
   }, [isAutoTour]);
 
   const toggleTourFullscreen = async () => {
-    const canvas = mountRef.current;
-    if (!canvas) return;
-    if (document.fullscreenElement) await document.exitFullscreen();
-    else await canvas.requestFullscreen();
+    const sec = sectionRef.current;
+    if (!sec) return;
+    if (document.fullscreenElement) {
+      await document.exitFullscreen();
+    } else {
+      await sec.requestFullscreen();
+    }
   };
 
+  // Setup Three.js 360° Sphere Canvas & GSAP ScrollTrigger
   useEffect(() => {
     const mount = mountRef.current;
     const section = sectionRef.current;
     if (!mount || !section) return undefined;
 
-    // --- 1. Scene, Camera, Renderer ---
+    // 1. Scene, Camera, Renderer
     const world = new THREE.Scene();
-    const bgColor = isNight ? "#050d18" : "#091728";
-    world.background = new THREE.Color(bgColor);
-    world.fog = new THREE.Fog(bgColor, 30, 140);
+    world.background = new THREE.Color(isNight ? "#040c17" : "#081628");
 
-    const camera = new THREE.PerspectiveCamera(46, mount.clientWidth / mount.clientHeight, 0.1, 200);
+    const camera = new THREE.PerspectiveCamera(65, mount.clientWidth / mount.clientHeight, 0.1, 1000);
+    camera.position.set(0, 0, 0.01);
+
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.8));
     renderer.setSize(mount.clientWidth, mount.clientHeight);
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     mount.appendChild(renderer.domElement);
-    tourState.current.camera = camera;
 
-    // --- 2. Dynamic Lighting (Day / Night) ---
-    const hemiLight = new THREE.HemisphereLight(
-      isNight ? "#1e293b" : "#e0f2fe",
-      isNight ? "#090d16" : "#0f172a",
-      isNight ? 0.7 : 1.9
-    );
-    world.add(hemiLight);
-
-    const sun = new THREE.DirectionalLight(
-      isNight ? "#38bdf8" : "#fffbeb",
-      isNight ? 0.9 : 2.7
-    );
-    sun.position.set(20, 32, 24);
-    sun.castShadow = true;
-    sun.shadow.mapSize.set(1024, 1024);
-    world.add(sun);
-
-    const box = (size, pos, mat, parent = world) => {
-      const mesh = new THREE.Mesh(new THREE.BoxGeometry(...size), mat);
-      mesh.position.set(...pos);
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
-      parent.add(mesh);
-      return mesh;
-    };
-
-    // Shared Materials
-    const darkMat = new THREE.MeshStandardMaterial({ color: "#0f172a", roughness: 0.4 });
-    const woodDoorMat = new THREE.MeshStandardMaterial({ color: "#964e22", roughness: 0.6 });
-    const goldMat = new THREE.MeshStandardMaterial({ color: "#fbbf24", metalness: 0.8, roughness: 0.25 });
-    const glassDoorMat = new THREE.MeshPhysicalMaterial({ color: "#93c5fd", roughness: 0.1, transmission: 0.7, transparent: true, opacity: 0.75 });
-
-    // ========================================================================
-    // --- 3. BUILD ALL 10 3D ENVIRONMENTS BASED ON REFERENCE IMAGES ---
-    // ========================================================================
-
-    // Zone 1: Building Exterior & Grounds (z = 0 facing +Z)
-    // References: dormitory-building.png, university-campus.png, d1..d6
-    const exteriorGroup = new THREE.Group();
-    exteriorGroup.position.set(0, 0, 0);
-    world.add(exteriorGroup);
-    buildBuildingExterior(exteriorGroup);
-
-    // Zone 2: Main Entrance Doors (at z = 0)
-    // Two large swing doors that open wide inward
-    const doorW = 1.35;
-    const doorH = 3.8;
-    const doorThick = 0.08;
-
-    const doorLPivot = new THREE.Group();
-    doorLPivot.position.set(-doorW, 0, 0.05);
-    world.add(doorLPivot);
-    const doorL = new THREE.Group();
-    doorLPivot.add(doorL);
-    box([0.1, doorH, doorThick], [0.05, doorH / 2, 0], darkMat, doorL);
-    box([0.1, doorH, doorThick], [doorW - 0.05, doorH / 2, 0], darkMat, doorL);
-    box([doorW, 0.12, doorThick], [doorW / 2, doorH - 0.06, 0], darkMat, doorL);
-    box([doorW, 0.2, doorThick], [doorW / 2, 0.1, 0], darkMat, doorL);
-    box([doorW - 0.2, doorH - 0.45, 0.04], [doorW / 2, doorH / 2, 0], glassDoorMat, doorL);
-    box([0.04, 1.2, 0.06], [doorW - 0.15, doorH / 2, 0.06], goldMat, doorL);
-
-    const doorRPivot = new THREE.Group();
-    doorRPivot.position.set(doorW, 0, 0.05);
-    world.add(doorRPivot);
-    const doorR = new THREE.Group();
-    doorRPivot.add(doorR);
-    box([0.1, doorH, doorThick], [-0.05, doorH / 2, 0], darkMat, doorR);
-    box([0.1, doorH, doorThick], [-doorW + 0.05, doorH / 2, 0], darkMat, doorR);
-    box([doorW, 0.12, doorThick], [-doorW / 2, doorH - 0.06, 0], darkMat, doorR);
-    box([doorW, 0.2, doorThick], [-doorW / 2, 0.1, 0], darkMat, doorR);
-    box([doorW - 0.2, doorH - 0.45, 0.04], [-doorW / 2, doorH / 2, 0], glassDoorMat, doorR);
-    box([0.04, 1.2, 0.06], [-doorW + 0.15, doorH / 2, 0.06], goldMat, doorR);
-
-    // Zone 3: Reception & Main Hall (Atrium) (z = -12 to -22)
-    // References: contact-background.jpeg, d2.jpeg
-    const receptionGroup = new THREE.Group();
-    receptionGroup.position.set(0, 0, -12);
-    world.add(receptionGroup);
-    buildMainEntranceReception(receptionGroup);
-
-    const atriumGroup = new THREE.Group();
-    atriumGroup.position.set(0, 0, -22);
-    world.add(atriumGroup);
-    buildMainHall(atriumGroup);
-
-    // Zone 4: Shared Kitchen & Dining Hall (z = -38)
-    // References: k1.jpeg, k2.jpeg, k3.jpeg
-    const kitchenGroup = new THREE.Group();
-    kitchenGroup.position.set(0, 0, -38);
-    world.add(kitchenGroup);
-    buildSharedKitchen(kitchenGroup);
-
-    // Zone 5: Library, Study Carrels & Coworking Hub (z = -56)
-    // References: l1.jpeg, l2.jpeg, l3.jpeg
-    const libraryGroup = new THREE.Group();
-    libraryGroup.position.set(0, 0, -56);
-    world.add(libraryGroup);
-    buildLibraryStudy(libraryGroup);
-
-    // Zone 6: Sports & Basketball Arena (z = -74)
-    // References: b1.jpeg, b2.webp, b3.jpeg
-    const sportsGroup = new THREE.Group();
-    sportsGroup.position.set(0, 0, -74);
-    world.add(sportsGroup);
-    buildSportsBasketball(sportsGroup);
-
-    // Zone 7: Room 01 — Kapsula Pod Yotoqxona (z = -92)
-    // Reference: room1.jpeg
-    const room1Group = new THREE.Group();
-    room1Group.position.set(0, 0, -92);
-    world.add(room1Group);
-    buildRoom1Capsule(room1Group);
-    const r1DoorPivot = new THREE.Group();
-    r1DoorPivot.position.set(-1.1, 0, -88.6);
-    world.add(r1DoorPivot);
-    box([1.1, 2.8, 0.08], [0.55, 1.4, 0], woodDoorMat, r1DoorPivot);
-
-    // Zone 8: Room 02 — Minimalist Oq Bunk Xona (z = -110)
-    // Reference: room2.jpeg
-    const room2Group = new THREE.Group();
-    room2Group.position.set(0, 0, -110);
-    world.add(room2Group);
-    buildRoom2Bunk(room2Group);
-    const r2DoorPivot = new THREE.Group();
-    r2DoorPivot.position.set(-1.1, 0, -106.6);
-    world.add(r2DoorPivot);
-    box([1.1, 2.8, 0.08], [0.55, 1.4, 0], woodDoorMat, r2DoorPivot);
-
-    // Zone 9: Room 03 — Standart 2 Kishilik Xona (z = -128)
-    // Reference: room3.jpeg
-    const room3Group = new THREE.Group();
-    room3Group.position.set(0, 0, -128);
-    world.add(room3Group);
-    buildRoom3Twin(room3Group);
-    const r3DoorPivot = new THREE.Group();
-    r3DoorPivot.position.set(-1.1, 0, -124.6);
-    world.add(r3DoorPivot);
-    box([1.1, 2.8, 0.08], [0.55, 1.4, 0], woodDoorMat, r3DoorPivot);
-
-    // Zone 10: Room 04 — Deluxe Studio Xona (z = -146)
-    // References: hero-dorm-room.jpeg, hero-dorm-room.png
-    const room4Group = new THREE.Group();
-    room4Group.position.set(0, 0, -146);
-    world.add(room4Group);
-    buildRoom4Studio(room4Group);
-    const r4DoorPivot = new THREE.Group();
-    r4DoorPivot.position.set(-1.1, 0, -142.6);
-    world.add(r4DoorPivot);
-    box([1.1, 2.8, 0.08], [0.55, 1.4, 0], woodDoorMat, r4DoorPivot);
-
-    // Connecting Dormitory Corridor (z = -80 to -160)
-    const corridorGroup = new THREE.Group();
-    world.add(corridorGroup);
-    box([4.4, 0.2, 85], [0, 0, -122.5], darkMat, corridorGroup);
-    box([4.4, 0.2, 85], [0, 4.4, -122.5], darkMat, corridorGroup);
-    box([0.3, 4.4, 85], [-2.2, 2.2, -122.5], darkMat, corridorGroup);
-    box([0.3, 4.4, 85], [2.2, 2.2, -122.5], darkMat, corridorGroup);
-
-    // Corridor Linear Lights
-    const warmLightMat = new THREE.MeshStandardMaterial({ color: "#fef08a", emissive: "#facc15", emissiveIntensity: 0.7 });
-    for (let lz = -84; lz >= -154; lz -= 6) {
-      box([0.2, 0.06, 3.2], [0, 4.35, lz], warmLightMat, corridorGroup);
-    }
-
-    // --- 4. Controls ---
+    // 2. Controls
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.06;
-    controls.enabled = false;
-    tourState.current.controls = controls;
+    controls.rotateSpeed = -0.32; // Inverted for natural interior look-around
+    controls.enableZoom = true;
+    controls.minDistance = 0.001;
+    controls.maxDistance = 10;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.35;
+    controlsRef.current = controls;
 
-    // --- 5. GSAP ScrollTrigger Timeline (Master Cinematic Fly-Through) ---
+    // 3. 360° Photorealistic Inverted Sphere of actual reference photo
+    const sphereGeo = new THREE.SphereGeometry(50, 64, 40);
+    sphereGeo.scale(-1, 1, 1);
+
+    const sphereMat = new THREE.MeshBasicMaterial({
+      color: isNight ? 0x94a3b8 : 0xffffff
+    });
+    sphereMatRef.current = sphereMat;
+
+    const initialScene = scenesInfo[scene] || scenesInfo[2];
+    const initialTex = textureCacheRef.current[initialScene.refImage];
+    if (initialTex) {
+      sphereMat.map = initialTex;
+      sphereMat.needsUpdate = true;
+    } else if (initialScene.refImage) {
+      new THREE.TextureLoader().load(initialScene.refImage, (t) => {
+        t.colorSpace = THREE.SRGBColorSpace;
+        textureCacheRef.current[initialScene.refImage] = t;
+        sphereMat.map = t;
+        sphereMat.needsUpdate = true;
+      });
+    }
+
+    const sphereMesh = new THREE.Mesh(sphereGeo, sphereMat);
+    world.add(sphereMesh);
+
+    // 4. GSAP ScrollTrigger Master Timeline
     const scrollTimeline = gsap.timeline({
       scrollTrigger: {
         trigger: section,
         start: "top top",
         end: () => `+=${window.innerHeight * 7.5}`,
-        scrub: 1.15,
+        scrub: 1.1,
         pin: true,
         pinSpacing: true,
         invalidateOnRefresh: true,
         anticipatePin: 1,
         onUpdate: ({ progress }) => {
-          tourState.current.progress = progress;
-          let sceneIdx = 0;
-          if (progress < 0.10) sceneIdx = 0;
-          else if (progress < 0.18) sceneIdx = 1;
-          else if (progress < 0.30) sceneIdx = 2;
-          else if (progress < 0.42) sceneIdx = 3;
-          else if (progress < 0.54) sceneIdx = 4;
-          else if (progress < 0.66) sceneIdx = 5;
-          else if (progress < 0.75) sceneIdx = 6;
-          else if (progress < 0.84) sceneIdx = 7;
-          else if (progress < 0.92) sceneIdx = 8;
-          else sceneIdx = 9;
-          setScene(sceneIdx);
+          setScrollProgress(progress);
+
+          let sIdx = 0;
+          if (progress < 0.08) sIdx = 0; // Bino Fasadi
+          else if (progress < 0.18) sIdx = 1; // Eshik Ochilishi
+          else if (progress < 0.30) sIdx = 2; // Katta Xoll
+          else if (progress < 0.42) sIdx = 3; // Oshxona
+          else if (progress < 0.54) sIdx = 4; // Kutubxona
+          else if (progress < 0.66) sIdx = 5; // Sport Maydoni
+          else if (progress < 0.75) sIdx = 6; // Room 1 (Kapsula)
+          else if (progress < 0.84) sIdx = 7; // Room 2 (Bunk)
+          else if (progress < 0.92) sIdx = 8; // Room 3 (Twin)
+          else sIdx = 9; // Room 4 (Studio)
+
+          setScene(sIdx);
         }
       }
     });
 
-    scrollTimeline.to(tourState.current, { progress: 1, duration: 1, ease: "none" });
+    scrollTimeline.to({}, { duration: 1 });
     scrollTimelineRef.current = scrollTimeline;
 
-    // --- 6. Resize Handler ---
+    // 5. Resize Observer
     const handleResize = () => {
       if (!mount) return;
       camera.aspect = mount.clientWidth / mount.clientHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(mount.clientWidth, mount.clientHeight);
     };
-    const resizeObserver = new ResizeObserver(handleResize);
-    resizeObserver.observe(mount);
-    handleResize();
+    const ro = new ResizeObserver(handleResize);
+    ro.observe(mount);
 
-    // --- 7. Render Loop ---
+    // 6. Animation Loop
     let frameId;
-    const render = () => {
-      const progress = tourState.current.progress;
-
-      // Camera coordinates along the 10 zones
-      const targetPos = new THREE.Vector3();
-      const targetLook = new THREE.Vector3();
-
-      if (progress < 0.10) {
-        // Zone 1: Exterior Building & Approach (z = 24 -> 5.5)
-        const t = progress / 0.10;
-        targetPos.set(0, 3.2 - t * 1.1, 24 - t * 18.5);
-        targetLook.set(0, 2.2, 0);
-      } else if (progress < 0.18) {
-        // Zone 2: Entrance & Doors Opening (z = 5.5 -> -2.5)
-        const t = (progress - 0.10) / 0.08;
-        targetPos.set(0, 2.1 - t * 0.3, 5.5 - t * 8.0);
-        targetLook.set(0, 1.8, -12);
-      } else if (progress < 0.30) {
-        // Zone 3: Reception & Atrium Main Hall (z = -2.5 -> -22)
-        const t = (progress - 0.18) / 0.12;
-        targetPos.set(Math.sin(t * Math.PI) * 0.5, 1.9, -2.5 - t * 18.0);
-        targetLook.set(0, 1.8, -20);
-      } else if (progress < 0.42) {
-        // Zone 4: Shared Kitchen & Dining (z = -20.5 -> -38)
-        const t = (progress - 0.30) / 0.12;
-        targetPos.set(Math.sin(t * Math.PI) * 0.6, 1.8, -20.5 - t * 17.5);
-        targetLook.set(0, 1.5, -40);
-      } else if (progress < 0.54) {
-        // Zone 5: Library, Study & Coworking (z = -38 -> -56)
-        const t = (progress - 0.42) / 0.12;
-        targetPos.set(Math.sin(t * Math.PI) * 0.6, 1.8, -38 - t * 18.0);
-        targetLook.set(0, 1.6, -58);
-      } else if (progress < 0.66) {
-        // Zone 6: Sports & Basketball Arena (z = -56 -> -74)
-        const t = (progress - 0.54) / 0.12;
-        targetPos.set(Math.sin(t * Math.PI) * 0.5, 1.9, -56 - t * 18.0);
-        targetLook.set(0, 1.8, -76);
-      } else if (progress < 0.75) {
-        // Zone 7: Room 01 — Kapsula Pod Xona (z = -74 -> -92)
-        const t = (progress - 0.66) / 0.09;
-        targetPos.set(Math.sin(t * Math.PI) * 0.4, 1.65, -74 - t * 18.0);
-        targetLook.set(-0.35, 1.5, -93.5);
-      } else if (progress < 0.84) {
-        // Zone 8: Room 02 — Minimalist Bunk Xona (z = -92 -> -110)
-        const t = (progress - 0.75) / 0.09;
-        targetPos.set(Math.sin(t * Math.PI) * 0.4, 1.7, -92 - t * 18.0);
-        targetLook.set(0, 1.5, -111.5);
-      } else if (progress < 0.92) {
-        // Zone 9: Room 03 — Standart Twin Xona (z = -110 -> -128)
-        const t = (progress - 0.84) / 0.08;
-        targetPos.set(Math.sin(t * Math.PI) * 0.4, 1.7, -110 - t * 18.0);
-        targetLook.set(0, 1.5, -129.5);
-      } else {
-        // Zone 10: Room 04 — Deluxe Studio Xona (z = -128 -> -146)
-        const t = (progress - 0.92) / 0.08;
-        targetPos.set(Math.sin(t * Math.PI) * 0.4, 1.7, -128 - t * 18.0);
-        targetLook.set(0, 1.5, -147.5);
-      }
-
-      // Smooth Door Rotations
-      // Main Entrance Doors:
-      const doorProgress = THREE.MathUtils.clamp((progress - 0.09) / 0.07, 0, 1);
-      doorLPivot.rotation.y = -doorProgress * 1.55;
-      doorRPivot.rotation.y = doorProgress * 1.55;
-
-      // Room Doors:
-      const r1Progress = THREE.MathUtils.clamp((progress - 0.64) / 0.05, 0, 1);
-      r1DoorPivot.rotation.y = -r1Progress * 1.55;
-
-      const r2Progress = THREE.MathUtils.clamp((progress - 0.73) / 0.05, 0, 1);
-      r2DoorPivot.rotation.y = -r2Progress * 1.55;
-
-      const r3Progress = THREE.MathUtils.clamp((progress - 0.82) / 0.05, 0, 1);
-      r3DoorPivot.rotation.y = -r3Progress * 1.55;
-
-      const r4Progress = THREE.MathUtils.clamp((progress - 0.90) / 0.05, 0, 1);
-      r4DoorPivot.rotation.y = -r4Progress * 1.55;
-
-      // Interactive 360 Camera Controls (Active inside rooms & facilities)
-      const isInInteractiveSpace =
-        (progress >= 0.22 && progress <= 0.28) || // Hall
-        (progress >= 0.35 && progress <= 0.40) || // Kitchen
-        (progress >= 0.46 && progress <= 0.52) || // Library
-        (progress >= 0.58 && progress <= 0.64) || // Sports
-        (progress >= 0.69 && progress <= 0.74) || // Room 1
-        (progress >= 0.78 && progress <= 0.83) || // Room 2
-        (progress >= 0.86 && progress <= 0.91) || // Room 3
-        (progress >= 0.94 && progress <= 0.99);   // Room 4
-
-      if (isInInteractiveSpace && controls.state !== -1) {
-        controls.enabled = true;
-        controls.target.lerp(targetLook, 0.08);
-        controls.update();
-      } else {
-        controls.enabled = false;
-        camera.position.lerp(targetPos, 0.08);
-        camera.lookAt(targetLook);
-      }
-
+    const animate = () => {
+      controls.update();
       renderer.render(world, camera);
-      frameId = requestAnimationFrame(render);
+      frameId = requestAnimationFrame(animate);
     };
-    render();
+    animate();
 
     return () => {
       cancelAnimationFrame(frameId);
-      resizeObserver.disconnect();
+      ro.disconnect();
       scrollTimeline.scrollTrigger?.kill();
       scrollTimeline.kill();
       controls.dispose();
@@ -1261,21 +1114,151 @@ function CampusTour({ onOpen3D, openBooking }) {
     };
   }, [isNight]);
 
+  // Update sphere texture whenever scene changes
+  useEffect(() => {
+    if (!sphereMatRef.current) return;
+    const targetScene = scenesInfo[scene] || scenesInfo[0];
+    const tex = textureCacheRef.current[targetScene.refImage];
+    if (tex) {
+      sphereMatRef.current.map = tex;
+      sphereMatRef.current.needsUpdate = true;
+    } else if (targetScene.refImage) {
+      new THREE.TextureLoader().load(targetScene.refImage, (t) => {
+        t.colorSpace = THREE.SRGBColorSpace;
+        textureCacheRef.current[targetScene.refImage] = t;
+        if (sphereMatRef.current) {
+          sphereMatRef.current.map = t;
+          sphereMatRef.current.needsUpdate = true;
+        }
+      });
+    }
+  }, [scene, scenesInfo]);
+
+  // Camera zoom controls
+  const handleZoom = (delta) => {
+    const c = controlsRef.current;
+    if (!c) return;
+    const cam = c.object;
+    if (!cam) return;
+    cam.fov = Math.max(30, Math.min(85, cam.fov + delta));
+    cam.updateProjectionMatrix();
+  };
+
+  // Door opening and building zoom calculations based on scroll
+  const doorOpenProgress = Math.min(Math.max((scrollProgress - 0.03) / 0.12, 0), 1);
+  const buildingScale = 1.0 + Math.min(scrollProgress / 0.16, 1.0) * 1.6;
+  const buildingOpacity = scrollProgress >= 0.22 ? 0 : scrollProgress <= 0.16 ? 1 : Math.max(0, 1 - (scrollProgress - 0.16) / 0.06);
+
   const curScene = scenesInfo[scene] || scenesInfo[0];
   const isRoom = curScene.category === "room";
 
   return (
     <section className="campus-tour" id="tour" ref={sectionRef}>
       <div className="campus-stage">
+        {/* THREE.JS 360° INTERIOR CANVAS */}
         <div className="campus-canvas" ref={mountRef} />
+
+        {/* PHOTOREALISTIC BUILDING EXTERIOR & 3D DOUBLE DOOR OPENING ON SCROLL */}
+        {buildingOpacity > 0 && (
+          <div
+            className="tour-building-wrapper"
+            style={{
+              opacity: buildingOpacity,
+              transition: "opacity 0.15s ease",
+              pointerEvents: buildingOpacity > 0.05 ? "auto" : "none"
+            }}
+          >
+            <div
+              className="tour-building-zoom"
+              style={{
+                transform: `scale(${buildingScale})`,
+                transition: "transform 0.08s linear"
+              }}
+            >
+              <img
+                src="/images/dormitory-building.png"
+                alt="TPU Talabalar Turar Joyi Binosi"
+                className="tour-building-img"
+                style={{
+                  filter: isNight
+                    ? "brightness(0.65) contrast(1.1) saturate(0.9) hue-rotate(-12deg)"
+                    : "brightness(1) contrast(1.05)"
+                }}
+              />
+
+              {/* 3D DOUBLE DOOR ENTRANCE PORTAL */}
+              <div className="tour-door-portal">
+                <div className="door-frame-border" />
+                <div className="door-canopy-sign">TPU TALABALAR TURAR JOYI</div>
+
+                {/* Warm Interior Light Shining Outward As Doors Open */}
+                <div
+                  className="door-interior-glow"
+                  style={{
+                    background: `radial-gradient(ellipse at 50% 60%, rgba(254, 240, 138, ${0.95 * doorOpenProgress}) 0%, rgba(245, 158, 11, ${0.7 * doorOpenProgress}) 45%, rgba(6, 21, 34, ${0.9 * doorOpenProgress}) 100%)`,
+                    opacity: doorOpenProgress,
+                    boxShadow: `0 0 ${45 * doorOpenProgress}px rgba(250, 204, 21, ${0.85 * doorOpenProgress})`
+                  }}
+                />
+
+                {/* Left Door - Swings Inward on Y-axis */}
+                <div
+                  className="door-leaf door-leaf-left"
+                  style={{
+                    transform: `rotateY(${-doorOpenProgress * 84}deg)`
+                  }}
+                >
+                  <div className="door-panel">
+                    <div className="door-glass" />
+                    <div className="door-handle door-handle-right" />
+                  </div>
+                </div>
+
+                {/* Right Door - Swings Inward on Y-axis */}
+                <div
+                  className="door-leaf door-leaf-right"
+                  style={{
+                    transform: `rotateY(${doorOpenProgress * 84}deg)`
+                  }}
+                >
+                  <div className="door-panel">
+                    <div className="door-glass" />
+                    <div className="door-handle door-handle-left" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="campus-vignette" />
 
         {/* TOP BAR / NAVIGATION */}
         <div className="campus-topbar">
           <span className="campus-logo">
-            TPU / <b>3D DORMITORY MASTER EXPERIENCE</b>
+            TPU / <b>100% REAL 3D DORMITORY MASTER EXPERIENCE</b>
           </span>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {/* Zoom Controls */}
+            <div style={{ display: "inline-flex", gap: 4, background: "rgba(6,21,34,0.85)", padding: "4px 8px", borderRadius: 20, border: "1px solid rgba(255,255,255,0.2)" }}>
+              <button
+                type="button"
+                onClick={() => handleZoom(-6)}
+                style={{ border: 0, background: "transparent", color: "#38bdf8", cursor: "pointer", display: "grid", placeItems: "center" }}
+                title="Yaqinlashtirish"
+              >
+                <ZoomIn size={14} />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleZoom(6)}
+                style={{ border: 0, background: "transparent", color: "#94a3b8", cursor: "pointer", display: "grid", placeItems: "center" }}
+                title="Uzoqlashtirish"
+              >
+                <ZoomOut size={14} />
+              </button>
+            </div>
+
             <button
               type="button"
               className="tool-pill"
@@ -1293,7 +1276,7 @@ function CampusTour({ onOpen3D, openBooking }) {
                 gap: 6
               }}
               onClick={() => setShowRefCompare((c) => !c)}
-              title="Haqiqiy rasm bilan solishtirish"
+              title="Fotosurat bilan solishtirish"
             >
               <Eye size={13} color="#38bdf8" /> Solishtirish
             </button>
@@ -1361,12 +1344,12 @@ function CampusTour({ onOpen3D, openBooking }) {
               style={{ width: "100%", height: 180, objectFit: "cover", borderRadius: 10, marginBottom: 8 }}
             />
             <p style={{ margin: 0, fontSize: 11, color: "#cbd5e1", lineHeight: 1.5 }}>
-              Ushbu 3D muhit aynan shu fotosurat arxitekturasi, mebellari va yorug‘ligi asosida aniq 3D model sifatida yaratildi.
+              Ushbu 3D panorama aynan shu haqiqiy fotosurat arxitekturasi va jihozlari asosida 360° interaktiv muhit sifatida ishlaydi.
             </p>
           </div>
         )}
 
-        {/* CINEMATIC TITLE & DESCRIPTION OVERLAY */}
+        {/* CINEMATIC TITLE & SPECS CARD OVERLAY */}
         <div className="campus-copy">
           <span className="tour-kicker">{curScene.tag}</span>
           <h2>{curScene.name}</h2>

@@ -434,6 +434,140 @@
 .campus-room-picker button{border:1px solid #ffffff26;background:#061b37b5;color:#b8cbd0;text-align:left;padding:10px 12px;border-radius:3px;font-size:11px;cursor:pointer;transition:.25s}
 .campus-room-picker button:hover,.campus-room-picker button.active{border-color:#d8b27b;background:#d8b27b;color:#071a2c}
 .campus-room-picker small{display:block;margin-top:3px;font-size:8px;opacity:.65;letter-spacing:1px;text-transform:uppercase}
+
+/* ==========================================================================
+   SCROLL-BASED REAL BUILDING ENTRANCE & 3D DOOR OPENING
+   ========================================================================== */
+.tour-building-wrapper {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 3;
+}
+
+.tour-building-zoom {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 70%;
+  will-change: transform;
+}
+
+.tour-building-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.tour-door-portal {
+  position: absolute;
+  left: 50%;
+  top: 73%;
+  transform: translate(-50%, -50%);
+  width: 150px;
+  height: 200px;
+  perspective: 1200px;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.door-frame-border {
+  position: absolute;
+  inset: -8px;
+  border: 4px solid #334155;
+  border-bottom: 2px solid #0f172a;
+  border-radius: 8px 8px 0 0;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.85), inset 0 0 20px rgba(0, 0, 0, 0.7);
+  background: rgba(15, 23, 42, 0.5);
+  pointer-events: none;
+}
+
+.door-canopy-sign {
+  position: absolute;
+  top: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #0f172a;
+  border: 1px solid #d8b27b;
+  color: #d8b27b;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  padding: 3px 12px;
+  border-radius: 4px;
+  white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.8);
+}
+
+.door-interior-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: 6px 6px 0 0;
+  pointer-events: none;
+}
+
+.door-leaf {
+  position: absolute;
+  top: 0;
+  width: 50%;
+  height: 100%;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.door-leaf-left {
+  left: 0;
+  transform-origin: left center;
+}
+
+.door-leaf-right {
+  right: 0;
+  transform-origin: right center;
+}
+
+.door-panel {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.96), rgba(15, 23, 42, 0.98));
+  border: 2px solid rgba(216, 178, 123, 0.7);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px;
+  position: relative;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.7);
+}
+
+.door-glass {
+  width: 82%;
+  height: 68%;
+  background: linear-gradient(135deg, rgba(147, 197, 253, 0.35) 0%, rgba(56, 189, 248, 0.15) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 3px;
+  box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.25);
+}
+
+.door-handle {
+  position: absolute;
+  top: 50%;
+  width: 4px;
+  height: 42px;
+  background: linear-gradient(180deg, #fef08a, #d8b27b, #b45309);
+  border-radius: 2px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.7);
+}
+
+.door-handle-right {
+  right: 6px;
+}
+
+.door-handle-left {
+  left: 6px;
+}
+
 @media(max-width:700px){
   .campus-tour{height:100vh}
   .campus-topbar{top:21px;left:6%;right:6%;font-size:8px}

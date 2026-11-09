@@ -46,7 +46,7 @@ export function SingleRoom3DCanvas({ roomIndex = 0, onBookRoom, isFullScrollMode
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(mount.clientWidth, mount.clientHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
-    mount.appendChild(renderer.domElement);
+    mount.replaceChildren(renderer.domElement);
 
     // 2. Controls
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -130,9 +130,7 @@ export function SingleRoom3DCanvas({ roomIndex = 0, onBookRoom, isFullScrollMode
       visibilityObserver.disconnect();
       controls.dispose();
       renderer.dispose();
-      if (mount.contains(renderer.domElement)) {
-        mount.removeChild(renderer.domElement);
-      }
+      mount.replaceChildren();
     };
   }, [meta.refImage]);
 

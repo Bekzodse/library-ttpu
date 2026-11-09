@@ -318,7 +318,27 @@ function App() {
 
         <CampusTour onOpen3D={open3D} openBooking={openBooking} />
 
-        <section className="rooms-section" id="rooms" style={{ width: "100%", padding: 0 }}>
+        <section className="rooms-section section-wrap" id="rooms">
+          <div className="section-intro">
+            <h2>O‘zingizga mos xonani tanlang</h2>
+            <p>O‘qish va dam olish uchun qulay, xavfsiz va zamonaviy xonalar.</p>
+            <a
+              className="btn btn-primary small-btn"
+              href="#rooms"
+              onClick={(event) => {
+                event.preventDefault();
+                navigate("#rooms");
+              }}
+            >
+              Barcha xonalarni ko‘rish <ArrowRight size={15} />
+            </a>
+          </div>
+          <div className="room-grid" id="rooms-list">
+            <RoomCards openBooking={openBooking} openDetails={setDetailRoom} open3D={open3D} />
+          </div>
+        </section>
+
+        <section className="rooms-3d-wrapper" style={{ width: "100%", padding: 0 }}>
           <Room3DExperience
             onBookRoom={(meta) =>
               openBooking({
@@ -477,17 +497,27 @@ function AuthModal({ mode, onModeChange, onClose, onSuccess }) {
  </div>;
 }
 
-function RoomsOnly({ openBooking }) {
+function RoomsOnly({ openBooking, openDetails, open3D }) {
   return (
-    <section className="rooms-only" id="rooms" style={{ width: "100%", padding: 0 }}>
-      <Room3DExperience
-        onBookRoom={(meta) =>
-          openBooking({
-            title: meta?.name || "Xona",
-            price: meta?.price || "$120"
-          })
-        }
-      />
+    <section className="rooms-only section-wrap" id="rooms" style={{ paddingTop: 20 }}>
+      <div className="rooms-only-heading">
+        <span className="section-kicker"><i /> Talabalar turar joyi</span>
+        <h1>O‘zingizga mos xonani tanlang</h1>
+        <p>O‘qish va dam olish uchun qulay, xavfsiz va zamonaviy xonalar.</p>
+      </div>
+      <div className="room-grid" style={{ marginBottom: 50 }}>
+        <RoomCards openBooking={openBooking} openDetails={openDetails} open3D={open3D} />
+      </div>
+      <div style={{ marginTop: 20 }}>
+        <Room3DExperience
+          onBookRoom={(meta) =>
+            openBooking({
+              title: meta?.name || "Xona",
+              price: meta?.price || "$120"
+            })
+          }
+        />
+      </div>
     </section>
   );
 }
@@ -799,6 +829,7 @@ function Facility3DViewer() {
           </div>
           <small style={{ display: "block", marginTop: 8, color: "#cbd5e1", fontSize: 10 }}>
             3D panorama aynan ushbu fotosuratlardagi mebel va jihozlar asosida 360° ko‘rinishda ishlaydi.
+
           </small>
         </div>
       )}
@@ -1008,7 +1039,7 @@ function CampusTour({ onOpen3D, openBooking }) {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.8));
     renderer.setSize(mount.clientWidth, mount.clientHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
-    mount.appendChild(renderer.domElement);
+    mount.replaceChildren(renderer.domElement);
 
     // 2. Controls
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -1048,39 +1079,41 @@ function CampusTour({ onOpen3D, openBooking }) {
     const sphereMesh = new THREE.Mesh(sphereGeo, sphereMat);
     world.add(sphereMesh);
 
-    // 4. GSAP ScrollTrigger Master Timeline
-    const scrollTimeline = gsap.timeline({
-      scrollTrigger: {
-        trigger: section,
-        start: "top top",
-        end: () => `+=${window.innerHeight * 7.5}`,
-        scrub: 1.1,
-        pin: true,
-        pinSpacing: true,
-        invalidateOnRefresh: true,
-        anticipatePin: 1,
-        onUpdate: ({ progress }) => {
-          setScrollProgress(progress);
+    // 4. GSAP Context for bulletproof ScrollTrigger pinning & cleanup
+    const ctx = gsap.context(() => {
+      const scrollTimeline = gsap.timeline({
+        scrollTrigger: {
+          trigger: section,
+          start: "top top",
+          end: () => `+=${window.innerHeight * 7.5}`,
+          scrub: 1.1,
+          pin: true,
+          pinSpacing: true,
+          invalidateOnRefresh: true,
+          anticipatePin: 1,
+          onUpdate: ({ progress }) => {
+            setScrollProgress(progress);
 
-          let sIdx = 0;
-          if (progress < 0.08) sIdx = 0; // Bino Fasadi
-          else if (progress < 0.18) sIdx = 1; // Eshik Ochilishi
-          else if (progress < 0.30) sIdx = 2; // Katta Xoll
-          else if (progress < 0.42) sIdx = 3; // Oshxona
-          else if (progress < 0.54) sIdx = 4; // Kutubxona
-          else if (progress < 0.66) sIdx = 5; // Sport Maydoni
-          else if (progress < 0.75) sIdx = 6; // Room 1 (Kapsula)
-          else if (progress < 0.84) sIdx = 7; // Room 2 (Bunk)
-          else if (progress < 0.92) sIdx = 8; // Room 3 (Twin)
-          else sIdx = 9; // Room 4 (Studio)
+            let sIdx = 0;
+            if (progress < 0.08) sIdx = 0; // Bino Fasadi
+            else if (progress < 0.18) sIdx = 1; // Eshik Ochilishi
+            else if (progress < 0.30) sIdx = 2; // Katta Xoll
+            else if (progress < 0.42) sIdx = 3; // Oshxona
+            else if (progress < 0.54) sIdx = 4; // Kutubxona
+            else if (progress < 0.66) sIdx = 5; // Sport Maydoni
+            else if (progress < 0.75) sIdx = 6; // Room 1 (Kapsula)
+            else if (progress < 0.84) sIdx = 7; // Room 2 (Bunk)
+            else if (progress < 0.92) sIdx = 8; // Room 3 (Twin)
+            else sIdx = 9; // Room 4 (Studio)
 
-          setScene(sIdx);
+            setScene(sIdx);
+          }
         }
-      }
-    });
+      });
 
-    scrollTimeline.to({}, { duration: 1 });
-    scrollTimelineRef.current = scrollTimeline;
+      scrollTimeline.to({}, { duration: 1 });
+      scrollTimelineRef.current = scrollTimeline;
+    }, section);
 
     // 5. Resize Observer
     const handleResize = () => {
@@ -1104,13 +1137,10 @@ function CampusTour({ onOpen3D, openBooking }) {
     return () => {
       cancelAnimationFrame(frameId);
       ro.disconnect();
-      scrollTimeline.scrollTrigger?.kill();
-      scrollTimeline.kill();
+      ctx.revert();
       controls.dispose();
       renderer.dispose();
-      if (mount.contains(renderer.domElement)) {
-        mount.removeChild(renderer.domElement);
-      }
+      mount.replaceChildren();
     };
   }, [isNight]);
 
@@ -1165,24 +1195,28 @@ function CampusTour({ onOpen3D, openBooking }) {
             style={{
               opacity: buildingOpacity,
               transition: "opacity 0.15s ease",
-              pointerEvents: buildingOpacity > 0.05 ? "auto" : "none"
+              pointerEvents: "none"
             }}
           >
             <div
               className="tour-building-zoom"
               style={{
                 transform: `scale(${buildingScale})`,
-                transition: "transform 0.08s linear"
+                transition: "transform 0.08s linear",
+                pointerEvents: "none"
               }}
             >
               <img
                 src="/images/dormitory-building.png"
                 alt="TPU Talabalar Turar Joyi Binosi"
                 className="tour-building-img"
+                draggable={false}
                 style={{
                   filter: isNight
                     ? "brightness(0.65) contrast(1.1) saturate(0.9) hue-rotate(-12deg)"
-                    : "brightness(1) contrast(1.05)"
+                    : "brightness(1) contrast(1.05)",
+                  userSelect: "none",
+                  pointerEvents: "none"
                 }}
               />
 

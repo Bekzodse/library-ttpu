@@ -179,6 +179,18 @@ function App() {
 
   const navigate = (href) => {
     setMenuOpen(false);
+    if (activeView === "home" && (href === "#tour" || href === "#rooms" || href === "#home")) {
+      if (window.location.hash !== href) {
+        window.history.pushState(null, "", href);
+      }
+      if (href === "#home") {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        document.querySelector(href)?.scrollIntoView({ behavior: "smooth" });
+      }
+      return;
+    }
+
     if (href === "#rooms" || href === "#facilities" || href === "#tour" || href === "#contact") {
       setActiveView(href.slice(1));
       if (window.location.hash !== href) {
@@ -242,7 +254,7 @@ function App() {
       </header>
 
       <main>
-        {activeView === "rooms" ? <RoomsOnly openBooking={openBooking} openDetails={setDetailRoom} open3D={open3D} /> : activeView === "facilities" ? <FacilitiesOnly facilities={facilities} /> : activeView === "tour" ? <CampusTour onOpen3D={open3D} /> : activeView === "contact" ? <ContactSection /> : <>
+        {activeView === "rooms" ? <RoomsOnly openBooking={openBooking} openDetails={setDetailRoom} open3D={open3D} /> : activeView === "facilities" ? <FacilitiesOnly facilities={facilities} /> : activeView === "tour" ? <CampusTour onOpen3D={open3D} openBooking={openBooking} /> : activeView === "contact" ? <ContactSection /> : <>
         <section className="hero" id="home">
           <div className="hero-copy">
             <div className="eyebrow"><GraduationCap size={17} /> Talabalar uchun zamonaviy yotoqxona</div>
@@ -283,6 +295,8 @@ function App() {
             </div>
           </div>
         </section>
+
+        <CampusTour onOpen3D={open3D} openBooking={openBooking} />
 
         <section className="rooms-section" id="rooms" style={{ width: "100%", padding: 0 }}>
           <Room3DExperience
@@ -517,34 +531,77 @@ function RoomCards({ openBooking, openDetails, open3D }) {
   ));
 }
 
-function CampusTour({ onOpen3D }) {
+function CampusTour({ onOpen3D, openBooking }) {
   const mountRef = useRef(null);
   const sectionRef = useRef(null);
   const scrollTimelineRef = useRef(null);
-  const tourState = useRef({ progress: 0, room: 0, controls: null, camera: null });
+  const tourState = useRef({ progress: 0, controls: null, camera: null });
   const [scene, setScene] = useState(0);
-  const [room, setRoom] = useState(0);
   const [isAutoTour, setIsAutoTour] = useState(false);
-  const roomNames = ["Xona 01", "Xona 02", "Xona 03"];
-  const locations = ["Talabalar shaharchasi", "Kirish qismi", "Qabulxona", "Yo‘lak", "Talabalar xonasi", "Umumiy joylar", "Terassa"];
-  const visibleAssets = scene < 2
-    ? [{ group: "campus", entries: Object.entries(tourAssets.campus) }]
-    : scene === 4
-      ? [{ group: "rooms", entries: Object.entries(tourAssets.rooms) }]
-      : scene === 5
-        ? [
-          { group: "kitchen", entries: Object.entries(tourAssets.kitchen) },
-          { group: "library", entries: Object.entries(tourAssets.library) },
-          { group: "basketball", entries: Object.entries(tourAssets.basketball) }
-        ]
-        : [];
-  const assetLabels = { campus: "Talabalar shaharchasi", rooms: "Talabalar xonasi", kitchen: "Oshxona", library: "Kutubxona", basketball: "Basketbol maydoni" };
+
+  const scenesInfo = [
+    {
+      kicker: "01 / Bino Fasadi",
+      title: "Tashkent Perfect University",
+      subtitle: "Talabalar Turar Joyi Asosiy Binosi",
+      desc: "Universitetimizning zamonaviy yotoqxona binosi. Pastga skrol qiling — bino eshigi ochilib, xonalar namoyon bo‘ladi!",
+      tag: "Tashqi ko‘rinish"
+    },
+    {
+      kicker: "02 / Bino Eshigi Ochilishi",
+      title: "Bino Eshiklari Ochilmoqda",
+      subtitle: "Xush kelibsiz!",
+      desc: "Bino eshiklari siz uchun ochilmoqda. Marhamat, ichkariga kiring!",
+      tag: "Bino kirishi"
+    },
+    {
+      kicker: "03 / Lobbi & Qabulxona",
+      title: "Kutib Olish Qismi va Yo‘lak",
+      subtitle: "Xavfsiz va shinam muhit",
+      desc: "24/7 xavfsizlik, qabulxona va sokin yo‘lak orqali xonalar tomon qadam qo‘yamiz.",
+      tag: "1-qavat Lobbi"
+    },
+    {
+      kicker: "04 / Xona 01 — 3D Model",
+      title: "Kapsula Pod Yotoqxona",
+      subtitle: "4-8 o‘rinli zamonaviy kapsula",
+      desc: "Yapon uslubidagi yog‘och kapsulalar, shaxsiy LED yorug‘lik, qizil choyshab va keng tortmalar.",
+      tag: "Xona 01 · $120/oy",
+      roomIndex: 0
+    },
+    {
+      kicker: "05 / Xona 02 — 3D Model",
+      title: "Minimalist Oq Bunk Yotoqxona",
+      subtitle: "4-6 o‘rinli yorug‘ xona",
+      desc: "Oq po‘lat ikki qavatli karavotlar, terracotta to‘shaklar va yaltiroq chinni kafel pol.",
+      tag: "Xona 02 · $100/oy",
+      roomIndex: 1
+    },
+    {
+      kicker: "06 / Xona 03 — 3D Model",
+      title: "Standart 2 Kishilik Xona",
+      subtitle: "2 kishilik shinam talabalar xonasi",
+      desc: "Ikkita alohida to‘shak, zebra rolikli parda, tabiiy qayin tortmalari va markaziy isitish.",
+      tag: "Xona 03 · $180/oy",
+      roomIndex: 2
+    }
+  ];
+
+  const locations = [
+    "🏛️ Bino Fasadi",
+    "🚪 Eshik Ochilishi",
+    "🏢 Lobbi & Yo‘lak",
+    "🛏️ 01 Kapsula",
+    "🛏️ 02 Bunk Bed",
+    "🛏️ 03 Twin Xona"
+  ];
+
+  const sceneProgressTargets = [0.03, 0.22, 0.36, 0.52, 0.72, 0.90];
 
   const jumpToScene = (index) => {
     const trigger = scrollTimelineRef.current?.scrollTrigger;
     if (trigger) {
-      const sceneProgress = [0.03, 0.22, 0.35, 0.52, 0.74, 0.86, 0.97];
-      const targetY = trigger.start + (trigger.end - trigger.start) * sceneProgress[index];
+      const targetY = trigger.start + (trigger.end - trigger.start) * sceneProgressTargets[index];
       window.scrollTo({ top: targetY, behavior: "smooth" });
     }
   };
@@ -564,7 +621,7 @@ function CampusTour({ onOpen3D }) {
         return;
       }
       window.scrollBy({ top: 3.5, behavior: "auto" });
-    }, 28);
+    }, 24);
     return () => clearInterval(interval);
   }, [isAutoTour]);
 
@@ -575,441 +632,489 @@ function CampusTour({ onOpen3D }) {
     else await canvas.requestFullscreen();
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     const mount = mountRef.current;
     const section = sectionRef.current;
     if (!mount || !section) return undefined;
+
+    // --- 1. Scene, Camera, Renderer ---
     const world = new THREE.Scene();
-    world.background = new THREE.Color("#071a2c");
-    world.fog = new THREE.Fog("#071a2c", 30, 115);
-    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 180);
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    world.background = new THREE.Color("#071524");
+    world.fog = new THREE.Fog("#071524", 20, 110);
+
+    const camera = new THREE.PerspectiveCamera(46, mount.clientWidth / mount.clientHeight, 0.1, 140);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.8));
+    renderer.setSize(mount.clientWidth, mount.clientHeight);
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFShadowMap;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     mount.appendChild(renderer.domElement);
     tourState.current.camera = camera;
 
-    const interactiveObjects = [];
+    // --- 2. Lighting ---
+    const hemiLight = new THREE.HemisphereLight("#e2f0fb", "#112235", 1.8);
+    world.add(hemiLight);
 
-    world.add(new THREE.HemisphereLight("#d9edff", "#172b43", 2.2));
-    const sun = new THREE.DirectionalLight("#fff1d2", 4);
-    sun.position.set(12, 22, 14);
+    const sun = new THREE.DirectionalLight("#fff4e0", 2.6);
+    sun.position.set(16, 24, 18);
     sun.castShadow = true;
     sun.shadow.mapSize.set(1024, 1024);
     world.add(sun);
 
+    // --- 3. Materials ---
     const materials = {
-      ground: new THREE.MeshStandardMaterial({ color: "#b9c9c4", roughness: 0.95 }),
-      concrete: new THREE.MeshStandardMaterial({ color: "#dce3e1", roughness: 0.72 }),
-      glass: new THREE.MeshPhysicalMaterial({ color: "#5e9bb2", metalness: 0.15, roughness: 0.12, transmission: 0.15, transparent: true, opacity: 0.78 }),
-      dark: new THREE.MeshStandardMaterial({ color: "#172d3a", roughness: 0.42 }),
-      wood: new THREE.MeshStandardMaterial({ color: "#a8754d", roughness: 0.7 }),
-      green: new THREE.MeshStandardMaterial({ color: "#315e4c", roughness: 0.9 }),
-      warm: new THREE.MeshStandardMaterial({ color: "#e5aa5e", emissive: "#8f4e1f", emissiveIntensity: 0.55 }),
-      white: new THREE.MeshStandardMaterial({ color: "#f7f3e9", roughness: 0.8 }),
-      glowCyan: new THREE.MeshBasicMaterial({ color: "#38bdf8", transparent: true, opacity: 0.55 })
+      ground: new THREE.MeshStandardMaterial({ color: "#2d4438", roughness: 0.95 }),
+      concrete: new THREE.MeshStandardMaterial({ color: "#e2e8f0", roughness: 0.7 }),
+      glass: new THREE.MeshPhysicalMaterial({
+        color: "#93c5fd",
+        metalness: 0.15,
+        roughness: 0.1,
+        transmission: 0.6,
+        transparent: true,
+        opacity: 0.75
+      }),
+      dark: new THREE.MeshStandardMaterial({ color: "#0f1f30", roughness: 0.45 }),
+      wood: new THREE.MeshStandardMaterial({ color: "#964e22", roughness: 0.65 }),
+      warm: new THREE.MeshStandardMaterial({ color: "#f59e0b", emissive: "#d97706", emissiveIntensity: 0.55 }),
+      white: new THREE.MeshStandardMaterial({ color: "#f8fafc", roughness: 0.8 }),
+      gold: new THREE.MeshStandardMaterial({ color: "#fbbf24", metalness: 0.8, roughness: 0.25 })
     };
-    const box = (size, position, material, parent = world) => {
-      const mesh = new THREE.Mesh(new THREE.BoxGeometry(...size), material);
-      mesh.position.set(...position);
+
+    const box = (size, pos, mat, parent = world) => {
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(...size), mat);
+      mesh.position.set(...pos);
       mesh.castShadow = true;
       mesh.receiveShadow = true;
       parent.add(mesh);
       return mesh;
     };
-    const cylinder = (radius, height, position, material, parent = world) => {
-      const mesh = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius * 1.08, height, 12), material);
-      mesh.position.set(...position);
+
+    const cylinder = (r, h, pos, mat, parent = world) => {
+      const mesh = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 16), mat);
+      mesh.position.set(...pos);
       mesh.castShadow = true;
       parent.add(mesh);
       return mesh;
     };
-    const tree = (x, z, scale = 1) => {
-      cylinder(0.13 * scale, 1.4 * scale, [x, 0.7 * scale, z], materials.wood);
-      const crown = new THREE.Mesh(new THREE.IcosahedronGeometry(1.05 * scale, 1), materials.green);
-      crown.position.set(x, 2 * scale, z);
-      crown.castShadow = true;
-      world.add(crown);
-    };
 
-    box([38, 0.25, 115], [0, -0.15, -29], materials.ground);
-    box([5, 0.08, 88], [0, 0.03, -29], materials.concrete);
-    for (let x = -17; x <= 17; x += 8) { tree(x, 3, 0.9); tree(x, -19, 0.75); }
-    for (let x = -15; x <= 15; x += 6) tree(x, -72, 0.72);
+    // --- 4. Surroundings & Walkway ---
+    // Ground lawn
+    box([60, 0.3, 70], [0, -0.15, 20], materials.ground);
+    // Main granite entrance walkway
+    box([6.4, 0.15, 32], [0, 0.05, 14], materials.concrete);
 
-    const campus = new THREE.Group();
-    campus.position.z = 0;
-    world.add(campus);
-    box([24, 6.8, 12], [0, 3.4, 0], materials.concrete, campus);
-    box([20, 3, 1.2], [0, 8.3, 0], materials.dark, campus);
-    box([24.5, 0.22, 12.5], [0, 0.18, 0], materials.dark, campus);
-    box([24.5, 0.22, 12.5], [0, 3.45, 0], materials.dark, campus);
-    box([24.5, 0.22, 12.5], [0, 6.8, 0], materials.dark, campus);
-    box([12, 1.7, 3.2], [0, 7.3, -6.6], materials.white, campus);
-    for (let floor = 0; floor < 2; floor += 1) {
-      const y = 2.1 + floor * 3.35;
-      for (let x = -9; x <= 9; x += 3) {
-        box([1.7, 2.35, 0.14], [x, y, -6.1], materials.glass, campus);
-        box([1.95, 0.08, 0.24], [x, y - 1.3, -6.22], materials.dark, campus);
-      }
+    // Walkway LED Bollards
+    for (let bz = 4; bz <= 26; bz += 4.5) {
+      cylinder(0.08, 0.9, [-3.6, 0.45, bz], materials.dark);
+      cylinder(0.1, 0.12, [-3.6, 0.9, bz], materials.warm);
+      cylinder(0.08, 0.9, [3.6, 0.45, bz], materials.dark);
+      cylinder(0.1, 0.12, [3.6, 0.9, bz], materials.warm);
     }
-    for (let x = -9; x <= 9; x += 3) {
-      box([1.55, 2.2, 0.12], [x, 2.1, 6.08], materials.glass, campus);
-      box([1.55, 2.2, 0.12], [x, 5.45, 6.08], materials.glass, campus);
+
+    // --- 5. Building Facade (Texture from dormitory-building.png) ---
+    const buildingGroup = new THREE.Group();
+    buildingGroup.position.set(0, 0, 0);
+    world.add(buildingGroup);
+
+    const texLoader = new THREE.TextureLoader();
+    const buildingTexture = texLoader.load("/images/dormitory-building.png", (tex) => {
+      tex.colorSpace = THREE.SRGBColorSpace;
+    });
+
+    const facadeWidth = 34;
+    const facadeHeight = 15;
+    const facadeMat = new THREE.MeshStandardMaterial({
+      map: buildingTexture,
+      roughness: 0.65,
+      metalness: 0.1
+    });
+
+    // Left Facade Wing
+    const leftWingWidth = (facadeWidth - 4.6) / 2;
+    const leftWing = new THREE.Mesh(new THREE.PlaneGeometry(leftWingWidth, facadeHeight), facadeMat);
+    leftWing.position.set(-facadeWidth / 4 - 1.15, facadeHeight / 2, 0);
+    buildingGroup.add(leftWing);
+
+    // Right Facade Wing
+    const rightWing = new THREE.Mesh(new THREE.PlaneGeometry(leftWingWidth, facadeHeight), facadeMat);
+    rightWing.position.set(facadeWidth / 4 + 1.15, facadeHeight / 2, 0);
+    buildingGroup.add(rightWing);
+
+    // Header above entrance portal
+    const portalTop = new THREE.Mesh(new THREE.PlaneGeometry(4.6, facadeHeight - 4.4), facadeMat);
+    portalTop.position.set(0, 4.4 + (facadeHeight - 4.4) / 2, 0);
+    buildingGroup.add(portalTop);
+
+    // Building side walls & roof
+    box([0.5, facadeHeight, 75], [-facadeWidth / 2, facadeHeight / 2, -37.5], materials.dark, buildingGroup);
+    box([0.5, facadeHeight, 75], [facadeWidth / 2, facadeHeight / 2, -37.5], materials.dark, buildingGroup);
+    box([facadeWidth + 0.6, 0.5, 75], [0, facadeHeight, -37.5], materials.dark, buildingGroup);
+
+    // --- 6. Entrance Portal & Canopy ---
+    const portalH = 4.2;
+    const portalW = 4.6;
+
+    // Portal arch frame
+    box([0.35, portalH, 0.5], [-portalW / 2 + 0.17, portalH / 2, 0.05], materials.dark, buildingGroup);
+    box([0.35, portalH, 0.5], [portalW / 2 - 0.17, portalH / 2, 0.05], materials.dark, buildingGroup);
+    box([portalW + 0.4, 0.4, 0.5], [0, portalH + 0.2, 0.05], materials.dark, buildingGroup);
+
+    // Modern Entrance Canopy
+    const canopyGroup = new THREE.Group();
+    canopyGroup.position.set(0, portalH + 0.25, 1.6);
+    buildingGroup.add(canopyGroup);
+
+    box([portalW + 2.4, 0.15, 3.4], [0, 0, 0], materials.dark, canopyGroup);
+    box([portalW + 2.0, 0.08, 3.0], [0, 0.12, 0], materials.glass, canopyGroup);
+    cylinder(0.08, 4.4, [-portalW / 2 - 0.9, -2.2, 1.4], materials.dark, canopyGroup);
+    cylinder(0.08, 4.4, [portalW / 2 + 0.9, -2.2, 1.4], materials.dark, canopyGroup);
+
+    // Illuminated TPU Dormitory Sign
+    const signPlate = box([4.6, 0.5, 0.15], [0, 0.38, 1.7], materials.dark, canopyGroup);
+    const signTextMat = new THREE.MeshStandardMaterial({
+      color: "#0f263d",
+      emissive: "#38bdf8",
+      emissiveIntensity: 0.6,
+      roughness: 0.3
+    });
+    box([4.2, 0.35, 0.17], [0, 0.38, 1.71], signTextMat, canopyGroup);
+
+    // --- 7. Double Entrance Doors (Bino Eshiklari) ---
+    const doorW = 1.3;
+    const doorH = 3.6;
+    const doorThick = 0.08;
+
+    // Sidelight glass panels
+    box([0.8, portalH - 0.2, 0.08], [-portalW / 2 + 0.55, portalH / 2, 0.05], materials.glass, buildingGroup);
+    box([0.8, portalH - 0.2, 0.08], [portalW / 2 - 0.55, portalH / 2, 0.05], materials.glass, buildingGroup);
+
+    // Left Door Pivot (at x = -doorW)
+    const doorLPivot = new THREE.Group();
+    doorLPivot.position.set(-doorW, 0, 0.05);
+    buildingGroup.add(doorLPivot);
+
+    const doorL = new THREE.Group();
+    doorLPivot.add(doorL);
+    box([0.1, doorH, doorThick], [0.05, doorH / 2, 0], materials.dark, doorL);
+    box([0.1, doorH, doorThick], [doorW - 0.05, doorH / 2, 0], materials.dark, doorL);
+    box([doorW, 0.12, doorThick], [doorW / 2, doorH - 0.06, 0], materials.dark, doorL);
+    box([doorW, 0.2, doorThick], [doorW / 2, 0.1, 0], materials.dark, doorL);
+    box([doorW - 0.2, doorH - 0.45, 0.04], [doorW / 2, doorH / 2, 0], materials.glass, doorL);
+    box([0.04, 1.2, 0.06], [doorW - 0.15, doorH / 2, 0.06], materials.gold, doorL);
+    box([0.04, 1.2, 0.06], [doorW - 0.15, doorH / 2, -0.06], materials.gold, doorL);
+
+    // Right Door Pivot (at x = +doorW)
+    const doorRPivot = new THREE.Group();
+    doorRPivot.position.set(doorW, 0, 0.05);
+    buildingGroup.add(doorRPivot);
+
+    const doorR = new THREE.Group();
+    doorRPivot.add(doorR);
+    box([0.1, doorH, doorThick], [-0.05, doorH / 2, 0], materials.dark, doorR);
+    box([0.1, doorH, doorThick], [-doorW + 0.05, doorH / 2, 0], materials.dark, doorR);
+    box([doorW, 0.12, doorThick], [-doorW / 2, doorH - 0.06, 0], materials.dark, doorR);
+    box([doorW, 0.2, doorThick], [-doorW / 2, 0.1, 0], materials.dark, doorR);
+    box([doorW - 0.2, doorH - 0.45, 0.04], [-doorW / 2, doorH / 2, 0], materials.glass, doorR);
+    box([0.04, 1.2, 0.06], [-doorW + 0.15, doorH / 2, 0.06], materials.gold, doorR);
+    box([0.04, 1.2, 0.06], [-doorW + 0.15, doorH / 2, -0.06], materials.gold, doorR);
+
+    // --- 8. Interior Lobby & Corridor ---
+    const lobbyGroup = new THREE.Group();
+    world.add(lobbyGroup);
+
+    // Lobby Floor & Ceiling
+    box([16, 0.2, 14], [0, 0, -6], materials.wood, lobbyGroup);
+    box([16, 0.2, 14], [0, 4.4, -6], materials.white, lobbyGroup);
+    box([0.3, 4.4, 14], [-8, 2.2, -6], materials.dark, lobbyGroup);
+    box([0.3, 4.4, 14], [8, 2.2, -6], materials.dark, lobbyGroup);
+
+    // Reception Desk
+    box([3.6, 1.1, 1.2], [-4.2, 0.55, -6], materials.warm, lobbyGroup);
+    box([3.8, 0.1, 1.4], [-4.2, 1.15, -6], materials.dark, lobbyGroup);
+
+    // Lobby Point Light
+    const lobbyLight = new THREE.PointLight("#ffedd5", 2.2, 16);
+    lobbyLight.position.set(0, 3.8, -5);
+    lobbyGroup.add(lobbyLight);
+
+    // Corridor extending to the rooms
+    box([4.2, 0.2, 54], [0, 0, -40], materials.dark, lobbyGroup);
+    box([4.2, 0.2, 54], [0, 4.4, -40], materials.white, lobbyGroup);
+    box([0.3, 4.4, 54], [-2.1, 2.2, -40], materials.dark, lobbyGroup);
+    box([0.3, 4.4, 54], [2.1, 2.2, -40], materials.dark, lobbyGroup);
+
+    // Linear Corridor Lights
+    for (let lz = -14; lz >= -64; lz -= 7) {
+      box([0.2, 0.06, 3.5], [0, 4.35, lz], materials.warm, lobbyGroup);
     }
-    for (let z = -4; z <= 4; z += 2.4) {
-      box([0.12, 2.15, 1.45], [-12.08, 2.1, z], materials.glass, campus);
-      box([0.12, 2.15, 1.45], [12.08, 2.1, z], materials.glass, campus);
-    }
-    box([25.5, 0.35, 13.5], [0, 9.95, 0], materials.dark, campus);
-    box([22, 0.22, 10], [0, 10.25, 0], materials.concrete, campus);
-    const entrance = new THREE.Group();
-    entrance.position.set(0, 2.1, -6.3);
-    campus.add(entrance);
-    box([1.8, 4.1, 0.16], [-1, 0, 0], materials.glass, entrance);
-    box([1.8, 4.1, 0.16], [1, 0, 0], materials.glass, entrance);
-    box([0.16, 4.5, 0.3], [0, 0, 0], materials.dark, entrance);
-    const doorL = box([0.88, 3.7, 0.1], [-0.48, 0, -0.18], materials.wood, entrance);
-    const doorR = box([0.88, 3.7, 0.1], [0.48, 0, -0.18], materials.wood, entrance);
-    doorL.geometry.translate(0.44, 0, 0); doorR.geometry.translate(-0.44, 0, 0);
-    box([16, 0.12, 5], [0, 0.05, -9], materials.dark, campus);
-    for (let x = -7; x <= 7; x += 3.5) box([1.8, 2.8, 0.12], [x, 3.2, -6.12], materials.glass, campus);
 
-    const assetTexture = (path, material, label) => {
-      if (!path) {
-        console.error(`[CampusTour] Rasm topilmadi: ${label}`);
-        return;
-      }
-      new THREE.TextureLoader().load(path, (texture) => {
-        texture.colorSpace = THREE.SRGBColorSpace;
-        material.map = texture;
-        material.needsUpdate = true;
-      }, undefined, () => console.error(`[CampusTour] Rasm yuklanmadi: ${label}`));
-    };
+    // --- 9. The 3 Detailed 3D Rooms ---
+    // Room 1 (Capsule Pods at z = -18)
+    const room1Group = new THREE.Group();
+    room1Group.position.set(0, 0, -18);
+    world.add(room1Group);
+    buildRoom1Capsule(room1Group);
 
-    // 3D Photo Monoliths / Pylons for Campus Assets (d1 to d6)
-    const createPylon = (position, rotationY, assetId) => {
-      const asset = allProjectAssets.find((a) => a.id === assetId);
-      if (!asset) return;
-      const pylon = new THREE.Group();
-      pylon.position.set(...position);
-      pylon.rotation.y = rotationY;
-      world.add(pylon);
+    // Room 1 Door (Pivot at x = -1.1, z = -14.6)
+    const r1DoorPivot = new THREE.Group();
+    r1DoorPivot.position.set(-1.1, 0, -14.6);
+    world.add(r1DoorPivot);
+    const room1Door = box([1.1, 2.8, 0.08], [0.55, 1.4, 0], materials.wood, r1DoorPivot);
+    box([0.04, 0.8, 0.06], [0.95, 1.4, 0.05], materials.gold, room1Door);
 
-      // Base with glowing trim
-      box([2.4, 0.25, 0.9], [0, 0.125, 0], materials.dark, pylon);
-      const glowGeo = new THREE.PlaneGeometry(2.5, 1.0);
-      const glowMesh = new THREE.Mesh(glowGeo, materials.glowCyan);
-      glowMesh.rotation.x = Math.PI / 2;
-      glowMesh.position.y = 0.02;
-      pylon.add(glowMesh);
+    // Room 2 (Bunk Beds at z = -38)
+    const room2Group = new THREE.Group();
+    room2Group.position.set(0, 0, -38);
+    world.add(room2Group);
+    buildRoom2Bunk(room2Group);
 
-      // Frame chassis
-      const frameHeight = 3.4;
-      const frameWidth = 2.3;
-      box([frameWidth + 0.16, frameHeight + 0.16, 0.16], [0, frameHeight / 2 + 0.35, 0], materials.dark, pylon);
-      box([frameWidth + 0.2, 0.15, 0.2], [0, frameHeight + 0.42, 0], materials.warm, pylon);
+    // Room 2 Door
+    const r2DoorPivot = new THREE.Group();
+    r2DoorPivot.position.set(-1.1, 0, -34.6);
+    world.add(r2DoorPivot);
+    const room2Door = box([1.1, 2.8, 0.08], [0.55, 1.4, 0], materials.wood, r2DoorPivot);
+    box([0.04, 0.8, 0.06], [0.95, 1.4, 0.05], materials.gold, room2Door);
 
-      // Photo Mesh with texture
-      const photoGeo = new THREE.PlaneGeometry(frameWidth, frameHeight);
-      const photoMat = new THREE.MeshStandardMaterial({ color: "#cadbe0", roughness: 0.3, metalness: 0.05 });
-      assetTexture(asset.url, photoMat, asset.title);
-      const photoMesh = new THREE.Mesh(photoGeo, photoMat);
-      photoMesh.position.set(0, frameHeight / 2 + 0.35, 0.09);
-      photoMesh.userData = { asset };
-      pylon.add(photoMesh);
-      interactiveObjects.push(photoMesh);
+    // Room 3 (Twin Beds at z = -58)
+    const room3Group = new THREE.Group();
+    room3Group.position.set(0, 0, -58);
+    world.add(room3Group);
+    buildRoom3Twin(room3Group);
 
-      // Front glass reflection plate
-      const glassMesh = new THREE.Mesh(
-        new THREE.PlaneGeometry(frameWidth, frameHeight),
-        new THREE.MeshPhysicalMaterial({ color: "#ffffff", transparent: true, opacity: 0.2, roughness: 0.06, transmission: 0.65 })
-      );
-      glassMesh.position.set(0, frameHeight / 2 + 0.35, 0.11);
-      pylon.add(glassMesh);
-    };
+    // Room 3 Door
+    const r3DoorPivot = new THREE.Group();
+    r3DoorPivot.position.set(-1.1, 0, -54.6);
+    world.add(r3DoorPivot);
+    const room3Door = box([1.1, 2.8, 0.08], [0.55, 1.4, 0], materials.wood, r3DoorPivot);
+    box([0.04, 0.8, 0.06], [0.95, 1.4, 0.05], materials.gold, room3Door);
 
-    createPylon([-4.6, 0, 1.5], 0.28, "d1");
-    createPylon([4.6, 0, 1.5], -0.28, "d2");
-    createPylon([-5.0, 0, -4.5], 0.2, "d3");
-    createPylon([5.0, 0, -4.5], -0.2, "d4");
-    createPylon([-5.5, 0, -9.5], 0.15, "d5");
-    createPylon([5.5, 0, -9.5], -0.15, "d6");
-
-    const lobby = new THREE.Group();
-    world.add(lobby);
-    box([14, 5, 10], [0, 2.5, -17], materials.dark, lobby);
-    box([11, 0.3, 6], [0, 0.18, -17], materials.wood, lobby);
-    box([4.8, 1.2, 1.2], [0, 0.8, -20.5], materials.wood, lobby);
-    box([0.35, 2.5, 0.35], [0, 2.25, -20.5], materials.warm, lobby);
-    for (let x = -5; x <= 5; x += 2.5) box([1.35, 2.7, 0.08], [x, 2.5, -21.8], materials.glass, lobby);
-    for (let x = -4; x <= 4; x += 4) { cylinder(0.35, 0.8, [x, 0.55, -14], materials.wood, lobby); cylinder(0.85, 0.9, [x, 1.3, -14], materials.green, lobby); }
-
-    const roomGroup = new THREE.Group();
-    world.add(roomGroup);
-    const corridor = new THREE.Group();
-    world.add(corridor);
-    box([7, 3, 35], [0, 1.5, -49], materials.dark, corridor);
-    box([5, 0.1, 30], [0, 3.05, -49], materials.warm, corridor);
-    for (let z = -38; z >= -60; z -= 5) box([1.7, 2.2, 0.12], [-3.45, 1.5, z], materials.wood, corridor);
-
-    // 3D Picture Frames along corridor walls
-    const createCorridorArt = (x, z, rotationY, assetId) => {
-      const asset = allProjectAssets.find((a) => a.id === assetId);
-      if (!asset) return;
-      const artGroup = new THREE.Group();
-      artGroup.position.set(x, 1.8, z);
-      artGroup.rotation.y = rotationY;
-      corridor.add(artGroup);
-
-      const fWidth = 2.4;
-      const fHeight = 1.6;
-      box([fWidth + 0.12, fHeight + 0.12, 0.12], [0, 0, 0], materials.dark, artGroup);
-      box([fWidth + 0.16, 0.04, 0.16], [0, fHeight / 2 + 0.08, 0], materials.warm, artGroup);
-
-      const photoMat = new THREE.MeshStandardMaterial({ color: "#b9d1d6", roughness: 0.35 });
-      assetTexture(asset.url, photoMat, asset.title);
-      const photoMesh = new THREE.Mesh(new THREE.PlaneGeometry(fWidth, fHeight), photoMat);
-      photoMesh.position.z = 0.07;
-      photoMesh.userData = { asset };
-      artGroup.add(photoMesh);
-      interactiveObjects.push(photoMesh);
-
-      const spotMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.18, 0.25, 8), materials.warm);
-      spotMesh.position.set(0, fHeight / 2 + 0.22, 0.12);
-      artGroup.add(spotMesh);
-    };
-
-    createCorridorArt(-3.4, -41, Math.PI / 2, "k1");
-    createCorridorArt(-3.4, -46, Math.PI / 2, "k2");
-    createCorridorArt(-3.4, -51, Math.PI / 2, "l1");
-    createCorridorArt(-3.4, -56, Math.PI / 2, "l2");
-    createCorridorArt(3.4, -41, -Math.PI / 2, "k3");
-    createCorridorArt(3.4, -46, -Math.PI / 2, "b1");
-    createCorridorArt(3.4, -51, -Math.PI / 2, "b2");
-    createCorridorArt(3.4, -56, -Math.PI / 2, "b3");
-    createCorridorArt(3.4, -60, -Math.PI / 2, "l3");
-
-    const terrace = new THREE.Group();
-    world.add(terrace);
-    box([18, 0.3, 13], [0, 0.18, -70], materials.wood, terrace);
-    box([18, 3.2, 0.2], [0, 1.8, -76], materials.glass, terrace);
-    for (let x = -6; x <= 6; x += 3) { box([1.7, 0.18, 1.7], [x, 1.1, -68], materials.white, terrace); cylinder(0.12, 1.4, [x - 0.65, 0.7, -68], materials.dark, terrace); }
-    for (let x = -7; x <= 7; x += 3.5) cylinder(0.28, 1.5, [x, 0.95, -73], materials.green, terrace);
-
-    // High Detail 3D Room Builder
-    const buildRoom = (index) => {
-      roomGroup.clear();
-      const subGroup = new THREE.Group();
-      subGroup.position.set(0, 0, -30);
-      roomGroup.add(subGroup);
-
-      if (index === 0) {
-        buildRoom1Capsule(subGroup);
-      } else if (index === 1) {
-        buildRoom2Bunk(subGroup);
-      } else {
-        buildRoom3Twin(subGroup);
-      }
-    };
-
-    buildRoom(0);
-    const changeRoom = (event) => buildRoom(event.detail);
-    mount.addEventListener("campus-room-change", changeRoom);
+    // --- 10. Controls ---
     const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true; controls.dampingFactor = 0.06; controls.enablePan = false; controls.enableZoom = false;
-    controls.minDistance = 0.1; controls.maxDistance = 0.1; controls.minPolarAngle = 0.22; controls.maxPolarAngle = Math.PI - 0.22; controls.enabled = false;
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.06;
+    controls.enabled = false;
     tourState.current.controls = controls;
 
-    // Raycasting for clicking 3D picture frames
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
-    let pointerDownCoord = { x: 0, y: 0 };
-
-    const handlePointerMove = (e) => {
-      const rect = mount.getBoundingClientRect();
-      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-      raycaster.setFromCamera(mouse, camera);
-      const hits = raycaster.intersectObjects(interactiveObjects);
-      mount.style.cursor = hits.length > 0 ? "pointer" : "default";
-    };
-
-    const handlePointerDown = (e) => {
-      pointerDownCoord = { x: e.clientX, y: e.clientY };
-    };
-
-    const handlePointerUp = (e) => {
-      const dist = Math.hypot(e.clientX - pointerDownCoord.x, e.clientY - pointerDownCoord.y);
-      if (dist > 6) return;
-      const rect = mount.getBoundingClientRect();
-      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-      raycaster.setFromCamera(mouse, camera);
-      const hits = raycaster.intersectObjects(interactiveObjects);
-      if (hits.length > 0 && hits[0].object.userData?.asset) {
-        onOpen3D?.(hits[0].object.userData.asset);
-      }
-    };
-
-    mount.addEventListener("pointermove", handlePointerMove);
-    mount.addEventListener("pointerdown", handlePointerDown);
-    mount.addEventListener("pointerup", handlePointerUp);
-
-    const resize = () => {
-      const { clientWidth, clientHeight } = mount;
-      camera.aspect = clientWidth / clientHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(clientWidth, clientHeight);
-    };
-    const observer = new ResizeObserver(resize);
-    observer.observe(mount);
+    // --- 11. GSAP ScrollTrigger Timeline ---
     const scrollTimeline = gsap.timeline({
       scrollTrigger: {
         trigger: section,
         start: "top top",
-        end: () => `+=${window.innerHeight * 5}`,
-        scrub: 1,
+        end: () => `+=${window.innerHeight * 5.5}`,
+        scrub: 1.1,
         pin: true,
         pinSpacing: true,
         invalidateOnRefresh: true,
         anticipatePin: 1,
         onUpdate: ({ progress }) => {
           tourState.current.progress = progress;
-          const sceneIndex = progress < 0.16 ? 0 : progress < 0.3 ? 1 : progress < 0.42 ? 2 : progress < 0.69 ? 3 : progress < 0.8 ? 4 : progress < 0.91 ? 5 : 6;
-          setScene(sceneIndex);
+          let sceneIdx = 0;
+          if (progress < 0.16) sceneIdx = 0;
+          else if (progress < 0.32) sceneIdx = 1;
+          else if (progress < 0.44) sceneIdx = 2;
+          else if (progress < 0.62) sceneIdx = 3;
+          else if (progress < 0.82) sceneIdx = 4;
+          else sceneIdx = 5;
+          setScene(sceneIdx);
         }
       }
     });
+
     scrollTimeline.to(tourState.current, { progress: 1, duration: 1, ease: "none" });
     scrollTimelineRef.current = scrollTimeline;
-    resize();
-    let frame;
+
+    // --- 12. Resize Handler ---
+    const handleResize = () => {
+      if (!mount) return;
+      camera.aspect = mount.clientWidth / mount.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(mount.clientWidth, mount.clientHeight);
+    };
+    const resizeObserver = new ResizeObserver(handleResize);
+    resizeObserver.observe(mount);
+    handleResize();
+
+    // --- 13. Render Loop ---
+    let frameId;
     const render = () => {
       const progress = tourState.current.progress;
-      const cameraPath = progress < 0.2
-        ? { position: [10 - progress * 12, 8 - progress * 8, 15 - progress * 38], target: [0, 2.8, -progress * 45] }
-        : progress < 0.42
-          ? { position: [0, 2.4, -9 - (progress - 0.2) * 40], target: [0, 2.4, -18] }
-          : progress < 0.69
-          ? { position: [0, 2, -29.5], target: [0, 2, -31] }
-            : { position: [0, 2.2, -48 - (progress - 0.69) * 75], target: [0, 1.7, -55 - (progress - 0.69) * 55] };
-      if (!controls.enabled) {
-        camera.position.lerp(new THREE.Vector3(...cameraPath.position), 0.065);
-        camera.lookAt(...cameraPath.target);
+
+      // 1. Calculate Camera Target & Position based on progress
+      const targetPos = new THREE.Vector3();
+      const targetLook = new THREE.Vector3();
+
+      if (progress < 0.16) {
+        // Stage 0: Outside Building, looking at facade
+        const t = progress / 0.16;
+        targetPos.set(0, 2.5 - t * 0.4, 15 - t * 9.5); // [0, 2.5, 15] -> [0, 2.1, 5.5]
+        targetLook.set(0, 2.0, 0);
+      } else if (progress < 0.32) {
+        // Stage 1: Entrance Doors Opening & Passing Through
+        const t = (progress - 0.16) / 0.16;
+        targetPos.set(0, 2.1 - t * 0.3, 5.5 - t * 7.5); // [0, 2.1, 5.5] -> [0, 1.8, -2.0]
+        targetLook.set(0, 1.8, -10);
+      } else if (progress < 0.44) {
+        // Stage 2: In Lobby, heading to Room 1
+        const t = (progress - 0.32) / 0.12;
+        targetPos.set(0, 1.8, -2.0 - t * 11.5); // [0, 1.8, -2.0] -> [0, 1.8, -13.5]
+        targetLook.set(0, 1.6, -18);
+      } else if (progress < 0.62) {
+        // Stage 3: Inside Room 01 (Capsule Pods at z = -18)
+        const t = (progress - 0.44) / 0.18;
+        targetPos.set(Math.sin(t * Math.PI) * 0.35, 1.65, -13.5 - t * 4.2);
+        targetLook.set(-0.35, 1.5, -19.5);
+      } else if (progress < 0.82) {
+        // Stage 4: Corridor -> Inside Room 02 (Bunk Beds at z = -38)
+        const t = (progress - 0.62) / 0.20;
+        if (t < 0.35) {
+          const sub = t / 0.35;
+          targetPos.set(0, 1.7, -17.7 - sub * 15.0);
+          targetLook.set(0, 1.6, -38);
+        } else {
+          const sub = (t - 0.35) / 0.65;
+          targetPos.set(Math.sin(sub * Math.PI) * 0.35, 1.65, -32.7 - sub * 4.5);
+          targetLook.set(0, 1.5, -39.5);
+        }
       } else {
-        controls.target.set(0, 2, -30);
-        controls.update();
+        // Stage 5: Corridor -> Inside Room 03 (Twin Beds at z = -58)
+        const t = (progress - 0.82) / 0.18;
+        if (t < 0.35) {
+          const sub = t / 0.35;
+          targetPos.set(0, 1.7, -37.2 - sub * 15.0);
+          targetLook.set(0, 1.6, -58);
+        } else {
+          const sub = (t - 0.35) / 0.65;
+          targetPos.set(Math.sin(sub * Math.PI) * 0.35, 1.65, -52.2 - sub * 4.5);
+          targetLook.set(0, 1.5, -59.5);
+        }
       }
-      const doorProgress = THREE.MathUtils.clamp((progress - 0.12) / 0.18, 0, 1);
-      doorL.rotation.y = -doorProgress * 1.2; doorR.rotation.y = doorProgress * 1.2;
-      controls.enabled = progress > 0.42 && progress < 0.69;
+
+      // 2. Door Opening Animations Driven by Scroll Progress
+      // Main Entrance Doors:
+      const doorProgress = THREE.MathUtils.clamp((progress - 0.14) / 0.14, 0, 1);
+      doorLPivot.rotation.y = -doorProgress * 1.55;
+      doorRPivot.rotation.y = doorProgress * 1.55;
+
+      // Room 1 Door:
+      const r1Progress = THREE.MathUtils.clamp((progress - 0.38) / 0.08, 0, 1);
+      r1DoorPivot.rotation.y = -r1Progress * 1.55;
+
+      // Room 2 Door:
+      const r2Progress = THREE.MathUtils.clamp((progress - 0.62) / 0.08, 0, 1);
+      r2DoorPivot.rotation.y = -r2Progress * 1.55;
+
+      // Room 3 Door:
+      const r3Progress = THREE.MathUtils.clamp((progress - 0.82) / 0.08, 0, 1);
+      r3DoorPivot.rotation.y = -r3Progress * 1.55;
+
+      // 3. Orbit Controls when inside rooms
+      const isInRoom =
+        (progress >= 0.44 && progress <= 0.60) ||
+        (progress >= 0.70 && progress <= 0.80) ||
+        (progress >= 0.88 && progress <= 0.99);
+
+      if (isInRoom && controls.state !== -1) {
+        controls.enabled = true;
+        controls.target.lerp(targetLook, 0.08);
+        controls.update();
+      } else {
+        controls.enabled = false;
+        camera.position.lerp(targetPos, 0.08);
+        camera.lookAt(targetLook);
+      }
+
       renderer.render(world, camera);
-      frame = requestAnimationFrame(render);
+      frameId = requestAnimationFrame(render);
     };
     render();
+
     return () => {
-      cancelAnimationFrame(frame);
-      observer.disconnect();
-      mount.removeEventListener("pointermove", handlePointerMove);
-      mount.removeEventListener("pointerdown", handlePointerDown);
-      mount.removeEventListener("pointerup", handlePointerUp);
+      cancelAnimationFrame(frameId);
+      resizeObserver.disconnect();
       scrollTimeline.scrollTrigger?.kill();
       scrollTimeline.kill();
-      mount.removeEventListener("campus-room-change", changeRoom);
       controls.dispose();
       renderer.dispose();
-      mount.removeChild(renderer.domElement);
+      if (mount.contains(renderer.domElement)) {
+        mount.removeChild(renderer.domElement);
+      }
     };
   }, []);
 
-  React.useEffect(() => {
-    tourState.current.room = room;
-    const event = new CustomEvent("campus-room-change", { detail: room });
-    mountRef.current?.dispatchEvent(event);
-  }, [room]);
-
-  const currentRoomAsset = allProjectAssets.find((a) => a.id === `room${room + 1}`);
+  const curScene = scenesInfo[scene];
+  const activeRoomMeta =
+    curScene.roomIndex !== undefined ? ROOM_3D_METADATA[curScene.roomIndex] : null;
 
   return (
     <section className="campus-tour" id="tour" ref={sectionRef}>
       <div className="campus-stage">
         <div className="campus-canvas" ref={mountRef} />
         <div className="campus-vignette" />
+
+        {/* TOP BAR */}
         <div className="campus-topbar">
-          <span className="campus-logo">TPU / <b>TALABALAR SHAHARCHASI</b></span>
-          <span>{String(scene + 1).padStart(2, "0")} / 07</span>
+          <span className="campus-logo">
+            TPU / <b>TALABALAR SHAHARCHASI & BINO SAYOHATI</b>
+          </span>
+          <span>0{scene + 1} / 06</span>
         </div>
+
+        {/* CINEMATIC TITLE & DESCRIPTION OVERLAY */}
         <div className="campus-copy">
-          <span className="tour-kicker">Talabalar shaharchasi bo‘ylab sayohat</span>
-          <h2>{["Talabalar shaharchasidagi yangi manzil", "Uyimizga yaqinroq", "Ichkariga qadam qo‘ying", "Hamjihatlik yo‘lagi", "Sizning xonangiz, sizning nigohingiz", "Talabalar hayoti uchun yaratilgan", "Ochiq havodagi terassa"][scene]}</h2>
-          <p>{["Toshkent Perfect University talabalar turar joyiga kirish uchun aylantiring.", "Me’moriy ko‘rinish har bir detal bilan ochiladi.", "Qabulxona, xavfsizlik va lobbidagi yorug‘lik bo‘ylab yuring.", "Xonalar, umumiy oshxona, o‘quv xonasi va basketbol maydonidan o‘ting.", "Markazdan turib talabalar xonasini 360° ko‘ring.", "Oshxona, kutubxona, dam olish va umumiy joylar.", "Kampus ustidagi rezidentlar uchun maxsus terassa."][scene]}</p>
-        </div>
+          <span className="tour-kicker">{curScene.kicker}</span>
+          <h2>{curScene.title}</h2>
+          <p>{curScene.desc}</p>
 
-        {scene === 4 && (
-          <button
-            className="enter-360-btn"
-            onClick={() => onOpen3D?.(currentRoomAsset, "sphere")}
-            title="Xonani to‘liq 360° sferada ko‘rish"
-          >
-            <RotateCw size={16} /> Xonani 360° / 3D fazoda ko‘rish
-          </button>
-        )}
-
-        <div className="campus-asset-wall" aria-label="Virtual tur rasmlari">
-          {visibleAssets.map(({ group, entries }) => (
-            <div className="campus-asset-group" key={group}>
-              <span className="campus-asset-title">
-                {assetLabels[group]}
-                <small>3D ko‘rish uchun bosing</small>
-              </span>
-              <div className="campus-asset-grid">
-                {entries.map(([name, path]) => {
-                  const assetObj = allProjectAssets.find((a) => a.id === name || a.url === path);
-                  return path ? (
-                    <figure
-                      key={name}
-                      className={group === "rooms" && name === `room${room + 1}` ? "selected" : ""}
-                      onClick={() => onOpen3D?.(assetObj || { url: path, title: `${assetLabels[group]} ${name}`, group })}
-                      title={`${assetLabels[group]} - 3D ko‘rinishda ochish`}
-                    >
-                      <img src={path} alt={`${assetLabels[group]} ${name}`} loading="eager" />
-                      <span className="asset-3d-pill"><Box size={9} /> 3D</span>
-                      <figcaption>{name}</figcaption>
-                    </figure>
-                  ) : (
-                    <figure key={name} className="missing-asset">
-                      <figcaption>{name} — rasm topilmadi</figcaption>
-                    </figure>
-                  );
-                })}
+          {/* ACTIVE ROOM CTA CARD */}
+          {activeRoomMeta && (
+            <div
+              className="tour-room-card"
+              style={{
+                marginTop: 20,
+                padding: "16px 20px",
+                borderRadius: 16,
+                background: "rgba(6, 21, 34, 0.9)",
+                backdropFilter: "blur(12px)",
+                border: "1px solid rgba(56, 189, 248, 0.35)",
+                boxShadow: "0 12px 30px rgba(0,0,0,0.5)",
+                display: "inline-flex",
+                flexDirection: "column",
+                gap: 10,
+                maxWidth: 360
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ color: "#38bdf8", fontSize: 11, fontWeight: 700, textTransform: "uppercase" }}>
+                  {activeRoomMeta.capacity}
+                </span>
+                <strong style={{ color: "#fff", fontSize: 18 }}>
+                  {activeRoomMeta.price} <small style={{ fontSize: 11, color: "#94a3b8" }}>/ oy</small>
+                </strong>
+              </div>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  style={{ padding: "8px 16px", fontSize: 12, borderRadius: 12 }}
+                  onClick={() => openBooking?.({ title: activeRoomMeta.name, price: activeRoomMeta.price })}
+                >
+                  Xonani band qilish <ArrowRight size={14} />
+                </button>
+                <span style={{ fontSize: 11, color: "#cbd5e1", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  <RotateCw size={13} color="#38bdf8" /> 360° erkin aylantiring
+                </span>
               </div>
             </div>
-          ))}
+          )}
         </div>
 
-        {scene === 3 && (
-          <div className="campus-room-picker" aria-label="Xona tanlash">
-            {roomNames.map((name, index) => (
-              <button
-                key={name}
-                className={room === index ? "active" : ""}
-                onClick={() => setRoom(index)}
-              >
-                {name}
-                <small>Xona 0{index + 1}</small>
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* 3D SCENE NAVIGATION PILLS */}
+        {/* 3D SCENE JUMP BUTTONS */}
         <div className="campus-scenes-nav">
           {locations.map((loc, idx) => (
             <button
               key={loc}
+              type="button"
               className={`scene-pill ${scene === idx ? "active" : ""}`}
               onClick={() => jumpToScene(idx)}
             >
@@ -1018,28 +1123,37 @@ function CampusTour({ onOpen3D }) {
             </button>
           ))}
           <button
+            type="button"
             className={`scene-pill auto-pill ${isAutoTour ? "active" : ""}`}
             onClick={toggleAutoTour}
-            title={isAutoTour ? "Avtomatik sayohatni to‘xtatish" : "Avtomatik sayohatni yoqish"}
+            title={isAutoTour ? "Avtomatik sayrni to‘xtatish" : "Avtomatik sayrni yoqish"}
           >
-            <Play size={12} fill={isAutoTour ? "currentColor" : "none"} /> {isAutoTour ? "To‘xtatish" : "Avto sayohat"}
-          </button>
-          <button
-            className="scene-pill gallery-pill"
-            onClick={() => onOpen3D?.(allProjectAssets[0])}
-            title="Barcha rasmlarni 3D fazoda ko‘rish"
-          >
-            <Sparkles size={12} /> Barcha 3D rasmlar
+            <Play size={12} fill={isAutoTour ? "currentColor" : "none"} />{" "}
+            {isAutoTour ? "To‘xtatish" : "Avto-sayr"}
           </button>
         </div>
 
-        <div className="campus-location"><span className="location-dot" /> {locations[scene]}</div>
-        <div className="campus-scroll-hint"><span className="scroll-line" /> <span>Ko‘rish uchun pastga aylantiring</span></div>
-        <div className="campus-progress"><span style={{ width: `${((scene + 1) / 7) * 100}%` }} /></div>
+        {/* CURRENT LOCATION BADGE */}
+        <div className="campus-location">
+          <span className="location-dot" /> {curScene.tag}
+        </div>
+
+        {/* HINT & PROGRESS */}
+        <div className="campus-scroll-hint">
+          <span className="scroll-line" />
+          <span>Pastga skrol qiling — eshik ochilib, xonalar ochiladi</span>
+        </div>
+        <div className="campus-progress">
+          <span style={{ width: `${((scene + 1) / 6) * 100}%` }} />
+        </div>
+
+        {/* CONTROLS HINT */}
         <div className="campus-controls-note">
-          {scene === 4 ? "360° da ko‘rish" : "Aylantirish orqali sayohat"}
+          {scene >= 3 ? "360° ko‘rish uchun aylantiring" : "Skrol orqali sayohat"}
           <span>↕</span>
-          <button onClick={toggleTourFullscreen} aria-label="To‘liq ekran">⛶</button>
+          <button type="button" onClick={toggleTourFullscreen} aria-label="To‘liq ekran">
+            ⛶
+          </button>
         </div>
       </div>
     </section>

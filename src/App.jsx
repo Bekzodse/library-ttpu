@@ -10,6 +10,8 @@ import {
   Eye, EyeOff, UserCircle, LogOut, Settings, KeyRound,
   Box, RotateCw, Maximize2, Minimize2, Sun, Moon, Grid, Layers, Sparkles, ChevronLeft, ZoomIn, ZoomOut
 } from "lucide-react";
+import Room3DExperience, { SingleRoom3DCanvas } from "./Room3DExperience.jsx";
+import { ROOM_3D_METADATA, buildRoom1Capsule, buildRoom2Bunk, buildRoom3Twin } from "./rooms3d.js";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -282,15 +284,15 @@ function App() {
           </div>
         </section>
 
-        <section className="rooms-section section-wrap" id="rooms">
-          <div className="section-intro">
-            <h2>O‘zingizga mos xonani tanlang</h2>
-            <p>O‘qish va dam olish uchun qulay, xavfsiz va zamonaviy xonalar.</p>
-            <a className="btn btn-primary small-btn" href="#rooms" onClick={(event) => { event.preventDefault(); navigate("#rooms"); }}>Barcha xonalarni ko‘rish <ArrowRight size={15} /></a>
-          </div>
-          <div className="room-grid" id="rooms-list">
-            <RoomCards openBooking={openBooking} openDetails={setDetailRoom} open3D={open3D} />
-          </div>
+        <section className="rooms-section" id="rooms" style={{ width: "100%", padding: 0 }}>
+          <Room3DExperience
+            onBookRoom={(meta) =>
+              openBooking({
+                title: meta?.name || "Xona",
+                price: meta?.price || "$120"
+              })
+            }
+          />
         </section>
 
         <section className="booking-cta" id="about">
@@ -441,16 +443,17 @@ function AuthModal({ mode, onModeChange, onClose, onSuccess }) {
  </div>;
 }
 
-function RoomsOnly({ openBooking, openDetails, open3D }) {
+function RoomsOnly({ openBooking }) {
   return (
-    <section className="rooms-only section-wrap" id="rooms">
-      <div className="rooms-only-heading">
-        <h1>O‘zingizga mos xonani tanlang</h1>
-        <p>O‘qish va dam olish uchun qulay, xavfsiz va zamonaviy xonalar.</p>
-      </div>
-      <div className="room-grid">
-        <RoomCards openBooking={openBooking} openDetails={openDetails} open3D={open3D} />
-      </div>
+    <section className="rooms-only" id="rooms" style={{ width: "100%", padding: 0 }}>
+      <Room3DExperience
+        onBookRoom={(meta) =>
+          openBooking({
+            title: meta?.name || "Xona",
+            price: meta?.price || "$120"
+          })
+        }
+      />
     </section>
   );
 }
@@ -799,54 +802,17 @@ function CampusTour({ onOpen3D }) {
     // High Detail 3D Room Builder
     const buildRoom = (index) => {
       roomGroup.clear();
-      const palette = [materials.white, materials.concrete, materials.dark, materials.wood][index];
-      const roomAssetId = `room${index + 1}`;
-      const activeRoomAsset = allProjectAssets.find((a) => a.id === roomAssetId);
+      const subGroup = new THREE.Group();
+      subGroup.position.set(0, 0, -30);
+      roomGroup.add(subGroup);
 
-      // Room Architecture
-      box([12, 0.2, 11], [0, 0, -30], materials.wood, roomGroup);
-      box([12, 5.2, 0.2], [0, 2.6, -35.5], palette, roomGroup);
-      box([0.2, 5.2, 11], [-6, 2.6, -30], palette, roomGroup);
-      box([0.2, 5.2, 11], [6, 2.6, -30], palette, roomGroup);
-
-      // 3D Bed Architecture
-      box([3.8, 0.5, 6.2], [-2.2, 0.45, -31.4], materials.dark, roomGroup); // bed frame
-      box([3.5, 0.45, 5.8], [-2.2, 0.85, -31.4], materials.white, roomGroup); // mattress
-      box([3.4, 0.2, 3.8], [-2.2, 1.1, -30.2], materials.dark, roomGroup); // duvet
-      box([1.4, 0.25, 0.9], [-3.1, 1.18, -33.6], materials.warm, roomGroup); // pillow 1
-      box([1.4, 0.25, 0.9], [-1.3, 1.18, -33.6], materials.warm, roomGroup); // pillow 2
-      box([3.8, 2.2, 0.16], [-2.2, 1.4, -34.6], materials.wood, roomGroup); // headboard
-
-      // 3D Study Desk & Laptop & Lamp
-      box([3.6, 0.12, 1.6], [3.2, 1.4, -28.0], materials.wood, roomGroup);
-      box([0.1, 1.4, 1.5], [1.5, 0.7, -28.0], materials.dark, roomGroup);
-      box([0.1, 1.4, 1.5], [4.9, 0.7, -28.0], materials.dark, roomGroup);
-      box([0.8, 0.04, 0.55], [3.2, 1.48, -28.0], materials.dark, roomGroup);
-      const screenMesh = box([0.8, 0.5, 0.04], [3.2, 1.74, -28.25], materials.glass, roomGroup);
-      screenMesh.rotation.x = -0.25;
-      box([0.3, 0.45, 0.3], [4.5, 1.7, -28.5], materials.warm, roomGroup);
-
-      // Student Chair
-      box([1.1, 0.1, 1.1], [3.2, 0.9, -29.5], materials.dark, roomGroup);
-      cylinder(0.08, 0.9, [3.2, 0.45, -29.5], materials.dark, roomGroup);
-      box([1.1, 1.1, 0.1], [3.2, 1.45, -30.0], materials.wood, roomGroup);
-
-      // Wardrobe & Window
-      box([2.2, 4.4, 1.4], [-4.7, 2.2, -26.5], materials.dark, roomGroup);
-      box([2.8, 2.8, 0.12], [-5.9, 2.8, -31.0], materials.glass, roomGroup);
-      box([2.8, 0.08, 0.08], [0, 4.8, -30], materials.warm, roomGroup);
-
-      // Curved 3D Panoramic Display for Room Photo
-      const curveGeo = new THREE.CylinderGeometry(5.2, 5.2, 2.8, 48, 1, true, -Math.PI / 4, Math.PI / 2);
-      curveGeo.scale(-1, 1, 1);
-      const roomPhotoMat = new THREE.MeshStandardMaterial({ color: "#cadbe0", roughness: 0.3, side: THREE.DoubleSide });
-      assetTexture(tourAssets.rooms[roomAssetId], roomPhotoMat, roomAssetId);
-      const curveScreen = new THREE.Mesh(curveGeo, roomPhotoMat);
-      curveScreen.position.set(0, 2.6, -30.5);
-      curveScreen.rotation.y = Math.PI;
-      curveScreen.userData = { asset: activeRoomAsset };
-      roomGroup.add(curveScreen);
-      interactiveObjects.push(curveScreen);
+      if (index === 0) {
+        buildRoom1Capsule(subGroup);
+      } else if (index === 1) {
+        buildRoom2Bunk(subGroup);
+      } else {
+        buildRoom3Twin(subGroup);
+      }
     };
 
     buildRoom(0);
@@ -1080,44 +1046,45 @@ function CampusTour({ onOpen3D }) {
   );
 }
 
-function RoomDetails({ room, closeDetails, openBooking, open3D }) {
-  const [imageIndex, setImageIndex] = useState(0);
-  const [isTourActive, setIsTourActive] = useState(false);
-  const changeImage = (direction) => {
-    setIsTourActive(false);
-    setImageIndex((index) => (index + direction + room.gallery.length) % room.gallery.length);
-  };
+function RoomDetails({ room, closeDetails, openBooking }) {
+  const roomIndex = Math.max(0, Math.min(2, (room?.id ? room.id - 1 : 0)));
 
   return (
     <div className="room-detail-backdrop" onClick={closeDetails}>
-      <div className={`room-detail-modal ${isTourActive ? "tour-open" : ""}`} role="dialog" aria-modal="true" aria-labelledby="room-detail-title" onClick={(event) => event.stopPropagation()}>
-        <button className="modal-close" onClick={closeDetails} aria-label="Yopish"><X /></button>
-        {isTourActive ? <PanoramaViewer room={room} onExit={() => setIsTourActive(false)} /> : <div className="room-gallery">
-          <img src={room.gallery[imageIndex]} alt={`${room.title} ko‘rinishi ${imageIndex + 1}`} />
-          <button
-            type="button"
-            className="gallery-3d-btn"
-            onClick={() => open3D?.({ url: room.gallery[imageIndex], title: `${room.title} (${imageIndex + 1}-rasm)`, group: "rooms" }, "card")}
-            style={{ position: "absolute", top: 16, left: 16, zIndex: 6, display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: 20, border: "1px solid rgba(255,255,255,0.35)", background: "rgba(6,27,55,0.85)", color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", backdropFilter: "blur(6px)", boxShadow: "0 4px 12px rgba(0,0,0,0.35)" }}
-            title="Ushbu rasmni 3D fazoda ko‘rish"
-          >
-            <Box size={14} color="#38bdf8" /> 3D ko‘rish
-          </button>
-          <div className="gallery-topline"><span className="gallery-label">Xona galereyasi</span><span className="gallery-counter">{imageIndex + 1} / {room.gallery.length}</span></div>
-          <button className="gallery-arrow gallery-prev" onClick={() => changeImage(-1)} aria-label="Oldingi ko‘rinish">‹</button>
-          <button className="gallery-arrow gallery-next" onClick={() => changeImage(1)} aria-label="Keyingi ko‘rinish">›</button>
-          <div className="gallery-thumbs">{room.gallery.map((image, index) => <button key={image} className={index === imageIndex ? "active" : ""} onClick={() => setImageIndex(index)}><img src={image} alt="" /></button>)}</div>
-        </div>}
-        <div className="room-detail-content">
-          <span className="section-kicker"><i /> {room.tag}</span>
-          <h2 id="room-detail-title">{room.title}</h2>
-          <p className="room-detail-description">{room.description} Xona yorug‘, toza va talabalar yashashi uchun to‘liq jihozlangan.</p>
-          <div className="room-detail-price"><strong>{room.price}</strong><span>/ oy</span><small>{room.people}</small></div>
-          <div className="amenities-list">{room.amenities.map((amenity) => <span key={amenity}><Check size={15} /> {amenity}</span>)}</div>
-          <div className="room-detail-actions">
-            <button className="btn btn-outline" onClick={() => open3D?.(room, "sphere")}><RotateCw size={15} /> 360° / 3D ko‘rish</button>
-            <button className="btn btn-primary" onClick={() => { closeDetails(); openBooking(room); }}>Xonani band qilish <ArrowRight size={16} /></button>
-          </div>
+      <div
+        className="room-detail-modal tour-open"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="room-detail-title"
+        onClick={(event) => event.stopPropagation()}
+        style={{
+          width: "94vw",
+          maxWidth: 1280,
+          height: "88vh",
+          padding: 0,
+          overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+          position: "relative"
+        }}
+      >
+        <button
+          className="modal-close"
+          onClick={closeDetails}
+          aria-label="Yopish"
+          style={{ zIndex: 100, position: "absolute", top: 16, right: 16 }}
+        >
+          <X />
+        </button>
+        <div style={{ flex: 1, position: "relative", width: "100%", height: "100%" }}>
+          <SingleRoom3DCanvas
+            roomIndex={roomIndex}
+            onBookRoom={(meta) => {
+              closeDetails();
+              openBooking({ title: meta?.name || room?.title || "Xona", price: meta?.price || room?.price || "$120" });
+            }}
+            isFullScrollMode={false}
+          />
         </div>
       </div>
     </div>
